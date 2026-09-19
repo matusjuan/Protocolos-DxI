@@ -40,15 +40,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const snap = await getDoc(doc(db, "perfiles", user.uid));
-      const data = snap.data();
-
-      setState({
-        cargando: false,
-        user,
-        rol: (data?.rol as Rol) ?? null,
-        nombre: data?.nombre ?? null,
-      });
+      try {
+        const snap = await getDoc(doc(db, "perfiles", user.uid));
+        const data = snap.data();
+        setState({
+          cargando: false,
+          user,
+          rol: (data?.rol as Rol) ?? null,
+          nombre: data?.nombre ?? null,
+        });
+      } catch (err) {
+        console.error("No se pudo leer el perfil del usuario:", err);
+        setState({ cargando: false, user, rol: null, nombre: null });
+      }
     });
 
     return () => unsub();

@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { RutaProtegida } from "@/components/RutaProtegida";
 import { Encabezado } from "@/components/Encabezado";
+import { TablaParametros } from "@/components/TablaParametros";
 import { db } from "@/lib/firebase/client";
 import { metaModalidad } from "@/lib/modalidades";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -16,18 +17,39 @@ function DetalleProtocolo() {
   const { rol } = useAuth();
   const [protocolo, setProtocolo] = useState<Protocolo | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let activo = true;
-    getDoc(doc(db, "protocolos", id)).then((snap) => {
-      if (!activo) return;
-      setProtocolo(snap.exists() ? ({ id: snap.id, ...snap.data() } as Protocolo) : null);
+    if (!id) {
       setCargando(false);
-    });
+      return;
+    }
+    let activo = true;
+    getDoc(doc(db, "protocolos", id))
+      .then((snap) => {
+        if (!activo) return;
+        setProtocolo(snap.exists() ? ({ id: snap.id, ...snap.data() } as Protocolo) : null);
+        setCargando(false);
+      })
+      .catch((err) => {
+        if (!activo) return;
+        console.error("Error al cargar el protocolo:", err);
+        setError(err instanceof Error ? err.message : "Error desconocido");
+        setCargando(false);
+      });
     return () => {
       activo = false;
     };
   }, [id]);
+
+  if (error) {
+    return (
+      <div className="flex h-screen flex-col bg-bg">
+        <Encabezado />
+        <p className="p-6 text-sm text-alert">Error al cargar el protocolo: {error}</p>
+      </div>
+    );
+  }
 
   if (cargando) {
     return (
@@ -89,6 +111,10 @@ function DetalleProtocolo() {
               </p>
               <p className="text-sm text-ink-dim">{protocolo.indicacion}</p>
             </div>
+          )}
+
+          {protocolo.parametrosPorEdad && protocolo.parametrosPorEdad.length > 0 && (
+            <TablaParametros grupos={protocolo.parametrosPorEdad} />
           )}
 
           {protocolo.usaContraste && (
