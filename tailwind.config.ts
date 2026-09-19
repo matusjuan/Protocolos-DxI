@@ -1,25 +1,32 @@
 import type { Config } from "tailwindcss";
 
+const withOpacity =
+  (variable: string) =>
+  ({ opacityValue }: { opacityValue?: string }) =>
+    opacityValue
+      ? `rgb(var(${variable}) / ${opacityValue})`
+      : `rgb(var(${variable}))`;
+
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
       colors: {
-        bg: "#0F1720",
-        surface: "#17212C",
-        surface2: "#1D2A38",
-        border: "#29394A",
-        ink: "#E6EDF3",
-        "ink-dim": "#8FA3B8",
-        "ink-faint": "#5C7186",
-        rm: "#5EC8D8",
-        "rm-dim": "#2E5B63",
-        tc: "#E8A33D",
-        "tc-dim": "#6B4E20",
-        rx: "#8FBF6F",
-        "rx-dim": "#3E5230",
-        alert: "#E2574C",
-        "alert-dim": "#5A2B26",
+        bg: withOpacity("--color-bg"),
+        surface: withOpacity("--color-surface"),
+        surface2: withOpacity("--color-surface2"),
+        border: withOpacity("--color-border"),
+        ink: withOpacity("--color-ink"),
+        "ink-dim": withOpacity("--color-ink-dim"),
+        "ink-faint": withOpacity("--color-ink-faint"),
+        rm: withOpacity("--color-rm"),
+        "rm-dim": withOpacity("--color-rm-dim"),
+        tc: withOpacity("--color-tc"),
+        "tc-dim": withOpacity("--color-tc-dim"),
+        rx: withOpacity("--color-rx"),
+        "rx-dim": withOpacity("--color-rx-dim"),
+        alert: withOpacity("--color-alert"),
+        "alert-dim": withOpacity("--color-alert-dim"),
       },
       fontFamily: {
         sans: [
