@@ -7,7 +7,7 @@ const withOpacity =
       ? `rgb(var(${variable}) / ${opacityValue})`
       : `rgb(var(${variable}))`;
 
-const config: Config = {
+const config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
@@ -50,6 +50,6 @@ const config: Config = {
     },
   },
   plugins: [],
-};
+} as unknown as Config;
 
 export default config;
