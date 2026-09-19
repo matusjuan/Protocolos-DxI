@@ -12,12 +12,15 @@ import type { Modalidad, Protocolo } from "@/types/database.types";
 function ListaProtocolos() {
   const [modalidad, setModalidad] = useState<Modalidad>("RM");
   const [busqueda, setBusqueda] = useState("");
+  const [regionSeleccionada, setRegionSeleccionada] = useState<string | null>(null);
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     let activo = true;
     setCargando(true);
+    setRegionSeleccionada(null);
+    setBusqueda("");
     const q = query(collection(db, "protocolos"), where("modalidad", "==", modalidad));
     getDocs(q).then((snap) => {
       if (!activo) return;
@@ -46,17 +49,31 @@ function ListaProtocolos() {
     );
   }, [protocolos, busqueda]);
 
+  const buscando = busqueda.trim().length > 0;
+
+  const regiones = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const p of protocolos) {
+      mapa.set(p.region, (mapa.get(p.region) ?? 0) + 1);
+    }
+    return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [protocolos]);
+
   const porRegion = useMemo(() => {
+    const base = buscando
+      ? filtrados
+      : filtrados.filter((p) => p.region === regionSeleccionada);
     const mapa = new Map<string, Protocolo[]>();
-    for (const p of filtrados) {
+    for (const p of base) {
       const lista = mapa.get(p.region) ?? [];
       lista.push(p);
       mapa.set(p.region, lista);
     }
     return Array.from(mapa.entries());
-  }, [filtrados]);
+  }, [filtrados, buscando, regionSeleccionada]);
 
   const meta = metaModalidad(modalidad);
+  const mostrarTarjetasDeRegion = !buscando && !regionSeleccionada;
 
   return (
     <div className="flex h-screen flex-col bg-bg">
@@ -106,7 +123,7 @@ function ListaProtocolos() {
               <p className="font-mono text-sm text-ink-faint">Cargando protocolos…</p>
             )}
 
-            {!cargando && porRegion.length === 0 && (
+            {!cargando && protocolos.length === 0 && (
               <div className="rounded border border-dashed border-border p-8 text-center">
                 <p className="text-sm text-ink-dim">
                   Todavía no hay protocolos cargados para {meta.etiqueta.toLowerCase()}.
@@ -114,36 +131,72 @@ function ListaProtocolos() {
               </div>
             )}
 
-            <div className="flex flex-col gap-6">
-              {porRegion.map(([region, items]) => (
-                <section key={region}>
-                  <h2 className="mb-2 text-sm font-semibold text-ink">
-                    {region}
-                  </h2>
-                  <div className="overflow-hidden rounded border border-border">
-                    {items.map((p, i) => (
-                      <Link
-                        key={p.id}
-                        href={`/protocolos/${p.id}`}
-                        className={`flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-surface2 ${
-                          i !== items.length - 1 ? "border-b border-border" : ""
-                        } bg-surface`}
-                      >
-                        <span className="text-ink">{p.patologia}</span>
-                        <span className="flex items-center gap-3 text-xs text-ink-faint">
-                          {p.usaContraste && (
-                            <span className="rounded border border-tc-dim px-1.5 py-0.5 text-tc">
-                              contraste
-                            </span>
-                          )}
-                          <span className="font-mono">{p.pasos?.length ?? 0} pasos</span>
-                        </span>
-                      </Link>
-                    ))}
+            {!cargando && mostrarTarjetasDeRegion && regiones.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {regiones.map(([region, cantidad]) => (
+                  <button
+                    key={region}
+                    onClick={() => setRegionSeleccionada(region)}
+                    className="rounded border border-border bg-surface p-4 text-left transition-colors hover:border-rm-dim hover:bg-surface2"
+                  >
+                    <p className="text-sm font-medium text-ink">{region}</p>
+                    <p className="mt-1 font-mono text-xs text-ink-faint">
+                      {cantidad} protocolo{cantidad !== 1 ? "s" : ""}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!cargando && !mostrarTarjetasDeRegion && (
+              <>
+                {!buscando && (
+                  <button
+                    onClick={() => setRegionSeleccionada(null)}
+                    className="mb-4 text-xs text-ink-faint hover:text-ink"
+                  >
+                    ← Regiones
+                  </button>
+                )}
+
+                {porRegion.length === 0 && (
+                  <div className="rounded border border-dashed border-border p-8 text-center">
+                    <p className="text-sm text-ink-dim">No se encontraron protocolos.</p>
                   </div>
-                </section>
-              ))}
-            </div>
+                )}
+
+                <div className="flex flex-col gap-6">
+                  {porRegion.map(([region, items]) => (
+                    <section key={region}>
+                      {buscando && (
+                        <h2 className="mb-2 text-sm font-semibold text-ink">{region}</h2>
+                      )}
+                      <div className="overflow-hidden rounded border border-border">
+                        {items.map((p, i) => (
+                          <Link
+                            key={p.id}
+                            href={`/protocolos/${p.id}`}
+                            className={`flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-surface2 ${
+                              i !== items.length - 1 ? "border-b border-border" : ""
+                            } bg-surface`}
+                          >
+                            <span className="text-ink">{p.patologia}</span>
+                            <span className="flex items-center gap-3 text-xs text-ink-faint">
+                              {p.usaContraste && (
+                                <span className="rounded border border-tc-dim px-1.5 py-0.5 text-tc">
+                                  contraste
+                                </span>
+                              )}
+                              <span className="font-mono">{p.pasos?.length ?? 0} pasos</span>
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </main>
       </div>
