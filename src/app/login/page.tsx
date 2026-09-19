@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-rm-dim bg-surface font-mono text-sm text-rm">
-            DI
+            DxI
           </div>
           <h1 className="text-lg font-semibold text-ink">
             Protocolos de Diagnóstico por Imágenes

@@ -21,8 +21,8 @@ export function Encabezado() {
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-5">
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded border border-rm-dim font-mono text-[11px] text-rm">
-            DI
+          <div className="flex h-7 w-7 items-center justify-center rounded border border-rm-dim font-mono text-[10px] text-rm">
+            DxI
           </div>
           <span className="text-sm font-semibold text-ink">Protocolos</span>
         </div>
