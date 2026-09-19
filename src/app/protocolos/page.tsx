@@ -1,0 +1,160 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { RutaProtegida } from "@/components/RutaProtegida";
+import { Encabezado } from "@/components/Encabezado";
+import { db } from "@/lib/firebase/client";
+import { MODALIDADES, metaModalidad } from "@/lib/modalidades";
+import type { Modalidad, Protocolo } from "@/types/database.types";
+
+function ListaProtocolos() {
+  const [modalidad, setModalidad] = useState<Modalidad>("RM");
+  const [busqueda, setBusqueda] = useState("");
+  const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    let activo = true;
+    setCargando(true);
+    const q = query(collection(db, "protocolos"), where("modalidad", "==", modalidad));
+    getDocs(q).then((snap) => {
+      if (!activo) return;
+      const datos = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }) as Protocolo)
+        .sort(
+          (a, b) =>
+            a.region.localeCompare(b.region) || a.patologia.localeCompare(b.patologia)
+        );
+      setProtocolos(datos);
+      setCargando(false);
+    });
+    return () => {
+      activo = false;
+    };
+  }, [modalidad]);
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return protocolos;
+    return protocolos.filter(
+      (p) =>
+        p.patologia.toLowerCase().includes(q) ||
+        p.region.toLowerCase().includes(q) ||
+        (p.indicacion ?? "").toLowerCase().includes(q)
+    );
+  }, [protocolos, busqueda]);
+
+  const porRegion = useMemo(() => {
+    const mapa = new Map<string, Protocolo[]>();
+    for (const p of filtrados) {
+      const lista = mapa.get(p.region) ?? [];
+      lista.push(p);
+      mapa.set(p.region, lista);
+    }
+    return Array.from(mapa.entries());
+  }, [filtrados]);
+
+  const meta = metaModalidad(modalidad);
+
+  return (
+    <div className="flex h-screen flex-col bg-bg">
+      <Encabezado />
+
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="w-48 shrink-0 border-r border-border bg-surface p-3">
+          <p className="mb-2 px-1 text-[11px] uppercase tracking-wide text-ink-faint">
+            Modalidad
+          </p>
+          <div className="flex flex-col gap-1">
+            {MODALIDADES.map((m) => (
+              <button
+                key={m.valor}
+                onClick={() => setModalidad(m.valor)}
+                className={`flex items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors ${
+                  modalidad === m.valor
+                    ? "bg-surface2 text-ink"
+                    : "text-ink-dim hover:bg-surface2/50"
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${m.fondo}`}
+                  aria-hidden
+                />
+                <span>
+                  <span className="font-mono text-xs">{m.valor}</span>
+                  <span className="ml-1.5">{m.etiqueta}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <main className="flex-1 overflow-y-auto scrollbar-thin">
+          <div className="sticky top-0 z-10 border-b border-border bg-bg/95 px-6 py-4 backdrop-blur">
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder={`Buscar en ${meta.etiqueta.toLowerCase()}: patología, región…`}
+              className="w-full max-w-md rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm"
+            />
+          </div>
+
+          <div className="px-6 py-5">
+            {cargando && (
+              <p className="font-mono text-sm text-ink-faint">Cargando protocolos…</p>
+            )}
+
+            {!cargando && porRegion.length === 0 && (
+              <div className="rounded border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-ink-dim">
+                  Todavía no hay protocolos cargados para {meta.etiqueta.toLowerCase()}.
+                </p>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-6">
+              {porRegion.map(([region, items]) => (
+                <section key={region}>
+                  <h2 className="mb-2 text-sm font-semibold text-ink">
+                    {region}
+                  </h2>
+                  <div className="overflow-hidden rounded border border-border">
+                    {items.map((p, i) => (
+                      <Link
+                        key={p.id}
+                        href={`/protocolos/${p.id}`}
+                        className={`flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-surface2 ${
+                          i !== items.length - 1 ? "border-b border-border" : ""
+                        } bg-surface`}
+                      >
+                        <span className="text-ink">{p.patologia}</span>
+                        <span className="flex items-center gap-3 text-xs text-ink-faint">
+                          {p.usaContraste && (
+                            <span className="rounded border border-tc-dim px-1.5 py-0.5 text-tc">
+                              contraste
+                            </span>
+                          )}
+                          <span className="font-mono">{p.pasos?.length ?? 0} pasos</span>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default function ProtocolosPage() {
+  return (
+    <RutaProtegida>
+      <ListaProtocolos />
+    </RutaProtegida>
+  );
+}
