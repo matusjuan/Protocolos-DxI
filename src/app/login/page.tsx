@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function aEmail(usuario: string) {
   const limpio = usuario.trim();
@@ -41,6 +42,9 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded border border-rm-dim bg-surface font-mono text-sm text-rm">

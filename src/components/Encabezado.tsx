@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase/client";
 import { useAuth } from "@/lib/firebase/AuthProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Encabezado() {
   const { rol, nombre } = useAuth();
@@ -53,6 +54,7 @@ export function Encabezado() {
       </div>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <span className="rounded border border-border px-2 py-0.5 font-mono text-[11px] uppercase tracking-wide text-ink-dim">
           {rol === "admin" ? "Admin" : "Técnico"}
         </span>

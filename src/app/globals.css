@@ -4,14 +4,52 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-bg: 15 23 32;
+  --color-surface: 23 33 44;
+  --color-surface2: 29 42 56;
+  --color-border: 41 57 74;
+  --color-ink: 230 237 243;
+  --color-ink-dim: 143 163 184;
+  --color-ink-faint: 92 113 134;
+
+  --color-rm: 94 200 216;
+  --color-rm-dim: 46 91 99;
+  --color-tc: 232 163 61;
+  --color-tc-dim: 107 78 32;
+  --color-rx: 143 191 111;
+  --color-rx-dim: 62 82 48;
+  --color-alert: 226 87 76;
+  --color-alert-dim: 90 43 38;
+}
+
+:root[data-theme="light"] {
+  --color-bg: 248 250 252;
+  --color-surface: 255 255 255;
+  --color-surface2: 237 242 247;
+  --color-border: 210 218 227;
+  --color-ink: 23 31 41;
+  --color-ink-dim: 74 90 105;
+  --color-ink-faint: 122 137 152;
+
+  --color-rm: 8 116 138;
+  --color-rm-dim: 205 240 246;
+  --color-tc: 176 92 8;
+  --color-tc-dim: 255 227 184;
+  --color-rx: 61 122 33;
+  --color-rx-dim: 214 236 200;
+  --color-alert: 185 41 31;
+  --color-alert-dim: 255 220 216;
+}
+
 * {
   box-sizing: border-box;
 }
 
 html,
 body {
-  background-color: #0f1720;
-  color: #e6edf3;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-ink));
 }
 
 body {
@@ -20,12 +58,12 @@ body {
 }
 
 ::selection {
-  background: #2e5b63;
-  color: #e6edf3;
+  background: rgb(var(--color-rm-dim));
+  color: rgb(var(--color-ink));
 }
 
 :focus-visible {
-  outline: 2px solid #5ec8d8;
+  outline: 2px solid rgb(var(--color-rm));
   outline-offset: 2px;
 }
 
@@ -34,7 +72,7 @@ body {
   height: 8px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #29394a;
+  background: rgb(var(--color-border));
   border-radius: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {

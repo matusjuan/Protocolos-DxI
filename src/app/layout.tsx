@@ -14,6 +14,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
+      <head>
+        <script
+          // Evita el parpadeo: aplica el tema guardado antes de pintar la página.
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('tema')==='claro'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         <AuthProvider>{children}</AuthProvider>
       </body>
