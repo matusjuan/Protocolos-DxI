@@ -38,7 +38,7 @@ const tecnica = (detalle: string): PasoProtocolo[] => [
 ];
 
 function v(posicion: string, kv: number, mas: number, angulacion?: string): ValorParametro {
-  return { posicion, kv, mas, angulacion };
+  return angulacion === undefined ? { posicion, kv, mas } : { posicion, kv, mas, angulacion };
 }
 
 function grupos(
