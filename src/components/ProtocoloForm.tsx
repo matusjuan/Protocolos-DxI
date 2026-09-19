@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   addDoc,
@@ -14,9 +14,40 @@ import { MODALIDADES } from "@/lib/modalidades";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type { Modalidad, PasoProtocolo, Protocolo } from "@/types/database.types";
 
+const MAX_IMAGENES = 4;
+const ANCHO_MAXIMO = 900;
+const CALIDAD_JPEG = 0.6;
+
+function comprimirImagen(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, ANCHO_MAXIMO / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * escala);
+        canvas.height = Math.round(img.height * escala);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("No se pudo procesar la imagen."));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", CALIDAD_JPEG));
+      };
+      img.onerror = () => reject(new Error("No se pudo leer la imagen."));
+      img.src = lector.result as string;
+    };
+    lector.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    lector.readAsDataURL(file);
+  });
+}
+
 export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const router = useRouter();
   const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [modalidad, setModalidad] = useState<Modalidad>(inicial?.modalidad ?? "RM");
   const [region, setRegion] = useState(inicial?.region ?? "");
@@ -30,7 +61,8 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     inicial?.pasos?.length ? inicial.pasos : [{ titulo: "", detalle: "" }]
   );
   const [notas, setNotas] = useState(inicial?.notas ?? "");
-  const imagenes = inicial?.imagenes ?? [];
+  const [imagenes, setImagenes] = useState<string[]>(inicial?.imagenes ?? []);
+  const [procesandoImagen, setProcesandoImagen] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +76,27 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function quitarPaso(i: number) {
     setPasos((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function agregarImagen(file: File) {
+    if (imagenes.length >= MAX_IMAGENES) {
+      setError(`Máximo ${MAX_IMAGENES} imágenes por protocolo.`);
+      return;
+    }
+    setProcesandoImagen(true);
+    setError(null);
+    try {
+      const dataUrl = await comprimirImagen(file);
+      setImagenes((prev) => [...prev, dataUrl]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo procesar la imagen.");
+    } finally {
+      setProcesandoImagen(false);
+    }
+  }
+
+  function quitarImagen(i: number) {
+    setImagenes((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -82,7 +135,12 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       }
       router.push("/admin");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar el protocolo.");
+      const mensaje = err instanceof Error ? err.message : "No se pudo guardar el protocolo.";
+      setError(
+        mensaje.includes("longer than")
+          ? "Las imágenes son muy pesadas para guardar juntas. Sacá alguna o repetila con menos calidad."
+          : mensaje
+      );
     } finally {
       setGuardando(false);
     }
@@ -210,6 +268,60 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-center justify-between">
+          <label className="text-xs font-medium text-ink-dim">
+            Imágenes de referencia
+          </label>
+          <span className="text-[11px] text-ink-faint">
+            {imagenes.length}/{MAX_IMAGENES}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {imagenes.map((url, i) => (
+            <div key={i} className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={url}
+                alt=""
+                className="h-20 w-20 rounded border border-border object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => quitarImagen(i)}
+                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-alert text-xs text-bg"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          {imagenes.length < MAX_IMAGENES && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={procesandoImagen}
+              className="flex h-20 w-20 items-center justify-center rounded border border-dashed border-border text-xs text-ink-faint hover:border-rm hover:text-rm disabled:opacity-50"
+            >
+              {procesandoImagen ? "Procesando…" : "+ Imagen"}
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) agregarImagen(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-ink-faint">
+          Se comprimen automáticamente al subirlas. Máximo {MAX_IMAGENES} por protocolo.
+        </p>
       </div>
 
       <div>
