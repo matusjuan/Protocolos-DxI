@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function esAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/perfiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/perfiles/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    // Cada usuario solo puede leer su propio perfil.
+    // Los perfiles se cargan a mano desde la consola de Firebase, nunca desde la app.
+    match /perfiles/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Cualquier usuario logueado (admin o técnico) puede leer los protocolos.
+    // Solo el admin puede crear, editar o borrar.
+    match /protocolos/{id} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if esAdmin();
+    }
+  }
+}
