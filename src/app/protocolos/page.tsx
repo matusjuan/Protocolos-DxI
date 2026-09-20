@@ -44,9 +44,11 @@ function SelectorModalidad({ onElegir }: { onElegir: (m: Modalidad) => void }) {
 function ListaProtocolos({
   modalidad,
   onVolverAModalidades,
+  onCambiarModalidad,
 }: {
   modalidad: Modalidad;
   onVolverAModalidades: () => void;
+  onCambiarModalidad: (m: Modalidad) => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [regionSeleccionada, setRegionSeleccionada] = useState<string | null>(null);
@@ -135,10 +137,13 @@ function ListaProtocolos({
         </p>
         <div className="flex flex-col gap-1">
           {MODALIDADES.map((m) => (
-            <span
+            <button
               key={m.valor}
-              className={`flex items-center gap-2 rounded px-3 py-2 text-left text-sm ${
-                modalidad === m.valor ? "bg-surface2 text-ink" : "text-ink-faint"
+              onClick={() => onCambiarModalidad(m.valor)}
+              className={`flex items-center gap-2 rounded px-3 py-2 text-left text-sm transition-colors ${
+                modalidad === m.valor
+                  ? "bg-surface2 text-ink"
+                  : "text-ink-dim hover:bg-surface2/50"
               }`}
             >
               <span className={`h-1.5 w-1.5 rounded-full ${m.fondo}`} aria-hidden />
@@ -146,7 +151,7 @@ function ListaProtocolos({
                 <span className="font-mono text-xs">{m.valor}</span>
                 <span className="ml-1.5">{m.etiqueta}</span>
               </span>
-            </span>
+            </button>
           ))}
         </div>
       </aside>
@@ -266,7 +271,11 @@ function Contenido() {
       {modalidad === null ? (
         <SelectorModalidad onElegir={setModalidad} />
       ) : (
-        <ListaProtocolos modalidad={modalidad} onVolverAModalidades={() => setModalidad(null)} />
+        <ListaProtocolos
+          modalidad={modalidad}
+          onVolverAModalidades={() => setModalidad(null)}
+          onCambiarModalidad={setModalidad}
+        />
       )}
     </div>
   );
