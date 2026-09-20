@@ -156,9 +156,9 @@ function ListaProtocolos() {
                     className="group flex flex-col items-start gap-3 rounded-lg border border-border bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:border-rm-dim hover:bg-surface2 hover:shadow-lg"
                   >
                     <span
-                      className={`flex h-14 w-14 items-center justify-center rounded-full ${meta.fondoDim} ${meta.texto} transition-transform group-hover:scale-105`}
+                      className="flex h-14 w-14 items-center justify-center rounded-full bg-surface2 transition-transform group-hover:scale-105"
                     >
-                      <IconoRegion region={region} claseColor="" className="h-11 w-11" />
+                      <IconoRegion region={region} claseColor="text-ink-dim" className="h-11 w-11" />
                     </span>
                     <div>
                       <p className="text-sm font-medium text-ink">{region}</p>
