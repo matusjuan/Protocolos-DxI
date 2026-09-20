@@ -11,8 +11,9 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { MODALIDADES } from "@/lib/modalidades";
+import { normalizarImagen } from "@/lib/imagenes";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import type { Modalidad, PasoProtocolo, Protocolo } from "@/types/database.types";
+import type { ImagenProtocolo, Modalidad, PasoProtocolo, Protocolo } from "@/types/database.types";
 
 const MAX_IMAGENES = 4;
 const ANCHO_MAXIMO = 900;
@@ -61,7 +62,9 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     inicial?.pasos?.length ? inicial.pasos : [{ titulo: "", detalle: "" }]
   );
   const [notas, setNotas] = useState(inicial?.notas ?? "");
-  const [imagenes, setImagenes] = useState<string[]>(inicial?.imagenes ?? []);
+  const [imagenes, setImagenes] = useState<ImagenProtocolo[]>(
+    (inicial?.imagenes ?? []).map(normalizarImagen)
+  );
   const [procesandoImagen, setProcesandoImagen] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +90,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setError(null);
     try {
       const dataUrl = await comprimirImagen(file);
-      setImagenes((prev) => [...prev, dataUrl]);
+      setImagenes((prev) => [...prev, { etiqueta: `Imagen ${prev.length + 1}`, url: dataUrl }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo procesar la imagen.");
     } finally {
@@ -97,6 +100,10 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function quitarImagen(i: number) {
     setImagenes((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function renombrarImagen(i: number, etiqueta: string) {
+    setImagenes((prev) => prev.map((img, idx) => (idx === i ? { ...img, etiqueta } : img)));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -280,21 +287,29 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           </span>
         </div>
         <div className="flex flex-wrap gap-3">
-          {imagenes.map((url, i) => (
-            <div key={i} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={url}
-                alt=""
-                className="h-20 w-20 rounded border border-border object-cover"
+          {imagenes.map((img, i) => (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.url}
+                  alt=""
+                  className="h-20 w-20 rounded border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => quitarImagen(i)}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-alert text-xs text-bg"
+                >
+                  ×
+                </button>
+              </div>
+              <input
+                value={img.etiqueta}
+                onChange={(e) => renombrarImagen(i, e.target.value)}
+                placeholder="Ej: Frente, Perfil…"
+                className="w-20 rounded border border-border bg-bg px-1 py-0.5 text-center text-[11px] text-ink outline-none focus:border-rm"
               />
-              <button
-                type="button"
-                onClick={() => quitarImagen(i)}
-                className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-alert text-xs text-bg"
-              >
-                ×
-              </button>
             </div>
           ))}
           {imagenes.length < MAX_IMAGENES && (

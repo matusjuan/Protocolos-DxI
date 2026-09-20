@@ -20,6 +20,11 @@ export interface ParametrosPorGrupo {
   valores: ValorParametro[];
 }
 
+export interface ImagenProtocolo {
+  etiqueta: string;
+  url: string;
+}
+
 export interface Perfil {
   rol: Rol;
   nombre: string | null;
@@ -36,7 +41,7 @@ export interface Protocolo {
   pasos: PasoProtocolo[];
   parametrosPorEdad?: ParametrosPorGrupo[];
   notas: string | null;
-  imagenes: string[];
+  imagenes: (ImagenProtocolo | string)[];
   createdBy: string | null;
   createdAt: number;
   updatedAt: number;

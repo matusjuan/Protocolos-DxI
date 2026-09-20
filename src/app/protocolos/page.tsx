@@ -5,124 +5,10 @@ import Link from "next/link";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { RutaProtegida } from "@/components/RutaProtegida";
 import { Encabezado } from "@/components/Encabezado";
+import { IconoRegion } from "@/components/IconoRegion";
 import { db } from "@/lib/firebase/client";
 import { MODALIDADES, metaModalidad } from "@/lib/modalidades";
 import type { Modalidad, Protocolo } from "@/types/database.types";
-
-function normalizar(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
-
-// Iconos ilustrativos simples (línea, sin fotos) para representar cada zona del cuerpo.
-function IconoRegion({ region, className }: { region: string; className?: string }) {
-  const r = normalizar(region);
-  const props = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.5,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className,
-  };
-
-  if (r.includes("crane") || r.includes("cabeza") || r.includes("encefalo") || r.includes("orbita")) {
-    return (
-      <svg {...props}>
-        <circle cx="12" cy="10" r="6.5" />
-        <path d="M9 15.5c0 2 .5 4 1 5M15 15.5c0 2-.5 4-1 5" />
-        <path d="M9 9.5c1-1 2-1 3-1s2 0 3 1" />
-      </svg>
-    );
-  }
-  if (r.includes("cuello") || r.includes("laringe")) {
-    return (
-      <svg {...props}>
-        <circle cx="12" cy="6" r="3.2" />
-        <path d="M9.5 9c0 3-.5 3.5-.5 5.5M14.5 9c0 3 .5 3.5.5 5.5" />
-        <path d="M7 20c1.5-2 3.5-2.5 5-2.5s3.5.5 5 2.5" />
-      </svg>
-    );
-  }
-  if (r.includes("torax") || r.includes("costal") || r.includes("esternon") || r.includes("clavicula")) {
-    return (
-      <svg {...props}>
-        <path d="M12 4v3" />
-        <path d="M12 7c-2.5 0-4 1.5-5 3-1 2-1 6 0 9" />
-        <path d="M12 7c2.5 0 4 1.5 5 3 1 2 1 6 0 9" />
-        <path d="M9 9.5c1 .5 2 .5 3 .5s2 0 3-.5" />
-        <path d="M8.5 13h7M8.7 16h6.6" />
-      </svg>
-    );
-  }
-  if (r.includes("abdomen") || r.includes("pelvis") || r.includes("cadera")) {
-    return (
-      <svg {...props}>
-        <path d="M9 4v3.5c0 1-.5 1.5-1 2-1 1-1.5 2.5-1.5 4.5 0 3 1 6.5 1 8" />
-        <path d="M15 4v3.5c0 1 .5 1.5 1 2 1 1 1.5 2.5 1.5 4.5 0 3-1 6.5-1 8" />
-        <path d="M8 12.5c1.3.7 2.7 1 4 1s2.7-.3 4-1" />
-      </svg>
-    );
-  }
-  if (r.includes("columna") || r.includes("sacro") || r.includes("coxis") || r.includes("espinograma")) {
-    return (
-      <svg {...props}>
-        <path d="M12 3v2.2M12 18.8V21" />
-        {[5.4, 7.6, 9.8, 12, 14.2, 16.4].map((y) => (
-          <path key={y} d={`M9 ${y}h6`} />
-        ))}
-        <path d="M9 5.4c0 5-1.5 4-1.5 7s1.5 3 1.5 7M15 5.4c0 5 1.5 4 1.5 7s-1.5 3-1.5 7" />
-      </svg>
-    );
-  }
-  if (
-    r.includes("miembros superiores") ||
-    r.includes("hombro") ||
-    r.includes("brazo") ||
-    r.includes("codo") ||
-    r.includes("antebrazo") ||
-    r.includes("muneca") ||
-    r.includes("mano") ||
-    r.includes("dedo") ||
-    r.includes("pulgar")
-  ) {
-    return (
-      <svg {...props}>
-        <circle cx="8" cy="5" r="2.3" />
-        <path d="M8 7.3v5.7l3 3.5" />
-        <path d="M11 16.5l1.2 3.8M8.5 20.5l2.5-4" />
-        <path d="M8.3 13.5l4.7-.3" />
-      </svg>
-    );
-  }
-  if (
-    r.includes("miembros inferiores") ||
-    r.includes("femur") ||
-    r.includes("rodilla") ||
-    r.includes("pierna") ||
-    r.includes("tobillo") ||
-    r.includes("pie")
-  ) {
-    return (
-      <svg {...props}>
-        <circle cx="12" cy="4.5" r="2.2" />
-        <path d="M12 6.7v6.3" />
-        <path d="M12 13l-2 6.5h3" />
-        <path d="M12 13l2 6.5-1.2 1" />
-      </svg>
-    );
-  }
-  // genérico / múltiples regiones / procedimientos especiales
-  return (
-    <svg {...props}>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M12 8v8M8 12h8" />
-    </svg>
-  );
-}
 
 function ListaProtocolos() {
   const [modalidad, setModalidad] = useState<Modalidad>("RM");
@@ -272,7 +158,7 @@ function ListaProtocolos() {
                     <span
                       className={`flex h-11 w-11 items-center justify-center rounded-full ${meta.fondoDim} ${meta.texto} transition-transform group-hover:scale-105`}
                     >
-                      <IconoRegion region={region} className="h-6 w-6" />
+                      <IconoRegion region={region} claseColor="" className="h-6 w-6" />
                     </span>
                     <div>
                       <p className="text-sm font-medium text-ink">{region}</p>

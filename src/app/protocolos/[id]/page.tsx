@@ -7,6 +7,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { RutaProtegida } from "@/components/RutaProtegida";
 import { Encabezado } from "@/components/Encabezado";
 import { TablaParametros } from "@/components/TablaParametros";
+import { GaleriaImagenes } from "@/components/GaleriaImagenes";
 import { db } from "@/lib/firebase/client";
 import { metaModalidad } from "@/lib/modalidades";
 import { useAuth } from "@/lib/firebase/AuthProvider";
@@ -157,22 +158,7 @@ function DetalleProtocolo() {
           )}
 
           {protocolo.imagenes?.length > 0 && (
-            <div className="mb-6">
-              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
-                Imágenes de referencia
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {protocolo.imagenes.map((url) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={url}
-                    src={url}
-                    alt={protocolo.patologia}
-                    className="aspect-square w-full rounded border border-border object-cover"
-                  />
-                ))}
-              </div>
-            </div>
+            <GaleriaImagenes imagenes={protocolo.imagenes} />
           )}
 
           {protocolo.notas && (
