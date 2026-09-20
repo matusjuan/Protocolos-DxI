@@ -58,6 +58,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   const [modalidad, setModalidad] = useState<Modalidad>(inicial?.modalidad ?? "RM");
   const [region, setRegion] = useState(inicial?.region ?? "");
+  const [subregion, setSubregion] = useState(inicial?.subregion ?? "");
   const [patologia, setPatologia] = useState(inicial?.patologia ?? "");
   const [indicacion, setIndicacion] = useState(inicial?.indicacion ?? "");
   const [usaContraste, setUsaContraste] = useState(inicial?.usaContraste ?? false);
@@ -157,6 +158,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     const payload = {
       modalidad,
       region: region.trim(),
+      subregion: subregion.trim() || null,
       patologia: patologia.trim(),
       indicacion: indicacion.trim() || null,
       usaContraste,
@@ -195,7 +197,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="mb-1.5 block text-xs font-medium text-ink-dim">
             Modalidad
@@ -219,7 +221,18 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           <input
             value={region}
             onChange={(e) => setRegion(e.target.value)}
-            placeholder="Ej: Cráneo, Columna, Abdomen"
+            placeholder="Ej: Columna, Osteoarticular"
+            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-ink-dim">
+            Subregión (opcional)
+          </label>
+          <input
+            value={subregion}
+            onChange={(e) => setSubregion(e.target.value)}
+            placeholder="Ej: Miembros superiores"
             className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm"
           />
         </div>

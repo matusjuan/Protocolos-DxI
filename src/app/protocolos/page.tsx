@@ -69,20 +69,53 @@ function SelectorModalidad({ onElegir }: { onElegir: (m: Modalidad) => void }) {
   );
 }
 
+function TarjetaCard({
+  titulo,
+  cantidad,
+  onClick,
+}: {
+  titulo: string;
+  cantidad: number;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="group flex flex-col items-start gap-3 rounded-lg border border-border bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:border-rm-dim hover:bg-surface2 hover:shadow-lg"
+    >
+      <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-surface2 ring-1 ring-border transition-transform group-hover:scale-105">
+        <IconoRegion region={titulo} claseColor="text-ink-dim" className="h-9 w-9" />
+      </span>
+      <div>
+        <p className="text-sm font-medium text-ink">{titulo}</p>
+        <p className="mt-0.5 font-mono text-xs text-ink-faint">
+          {cantidad} protocolo{cantidad !== 1 ? "s" : ""}
+        </p>
+      </div>
+    </button>
+  );
+}
+
 function ListaProtocolos({
   modalidad,
   regionInicial,
+  subregionInicial,
   onCambiarModalidad,
   onVolverAModalidades,
   onElegirRegion,
+  onElegirSubregion,
   onVolverARegiones,
+  onVolverASubregiones,
 }: {
   modalidad: Modalidad;
   regionInicial: string | null;
+  subregionInicial: string | null;
   onCambiarModalidad: (m: Modalidad) => void;
   onVolverAModalidades: () => void;
   onElegirRegion: (region: string) => void;
+  onElegirSubregion: (subregion: string) => void;
   onVolverARegiones: () => void;
+  onVolverASubregiones: () => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
@@ -125,12 +158,14 @@ function ListaProtocolos({
       (p) =>
         p.patologia.toLowerCase().includes(q) ||
         p.region.toLowerCase().includes(q) ||
+        (p.subregion ?? "").toLowerCase().includes(q) ||
         (p.indicacion ?? "").toLowerCase().includes(q)
     );
   }, [protocolos, busqueda]);
 
   const buscando = busqueda.trim().length > 0;
 
+  // Regiones (nivel 1)
   const regiones = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const p of protocolos) {
@@ -139,19 +174,49 @@ function ListaProtocolos({
     return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0]));
   }, [protocolos]);
 
+  // Protocolos de la región elegida
+  const protocolosDeRegion = useMemo(
+    () => protocolos.filter((p) => p.region === regionInicial),
+    [protocolos, regionInicial]
+  );
+
+  // ¿Esta región tiene subregiones?
+  const subregiones = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const p of protocolosDeRegion) {
+      if (p.subregion) mapa.set(p.subregion, (mapa.get(p.subregion) ?? 0) + 1);
+    }
+    return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [protocolosDeRegion]);
+
+  const tieneSubregiones = subregiones.length > 0;
+
   const porRegion = useMemo(() => {
-    const base = buscando ? filtrados : filtrados.filter((p) => p.region === regionInicial);
+    const base = buscando
+      ? filtrados
+      : tieneSubregiones
+        ? protocolosDeRegion.filter((p) => p.subregion === subregionInicial)
+        : protocolosDeRegion;
     const mapa = new Map<string, Protocolo[]>();
     for (const p of base) {
-      const lista = mapa.get(p.region) ?? [];
+      const clave = buscando ? p.region : p.patologia;
+      const lista = mapa.get(clave) ?? [];
       lista.push(p);
-      mapa.set(p.region, lista);
+      mapa.set(clave, lista);
     }
     return Array.from(mapa.entries());
-  }, [filtrados, buscando, regionInicial]);
+  }, [filtrados, buscando, protocolosDeRegion, tieneSubregiones, subregionInicial]);
 
   const meta = metaModalidad(modalidad);
-  const mostrarTarjetasDeRegion = !buscando && !regionInicial;
+
+  // Qué nivel mostrar
+  const nivel = buscando
+    ? "resultados"
+    : !regionInicial
+      ? "regiones"
+      : tieneSubregiones && !subregionInicial
+        ? "subregiones"
+        : "protocolos";
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -215,36 +280,48 @@ function ListaProtocolos({
             </div>
           )}
 
-          {!cargando && !error && mostrarTarjetasDeRegion && regiones.length > 0 && (
+          {!cargando && !error && nivel === "regiones" && regiones.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {regiones.map(([region, cantidad]) => (
-                <button
+                <TarjetaCard
                   key={region}
+                  titulo={region}
+                  cantidad={cantidad}
                   onClick={() => onElegirRegion(region)}
-                  className="group flex flex-col items-start gap-3 rounded-lg border border-border bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:border-rm-dim hover:bg-surface2 hover:shadow-lg"
-                >
-                  <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-surface2 ring-1 ring-border transition-transform group-hover:scale-105">
-                    <IconoRegion region={region} claseColor="text-ink-dim" className="h-9 w-9" />
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-ink">{region}</p>
-                    <p className="mt-0.5 font-mono text-xs text-ink-faint">
-                      {cantidad} protocolo{cantidad !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </button>
+                />
               ))}
             </div>
           )}
 
-          {!cargando && !error && !mostrarTarjetasDeRegion && (
+          {!cargando && !error && nivel === "subregiones" && (
             <>
-              {!buscando && (
+              <button
+                onClick={onVolverARegiones}
+                className="mb-4 text-xs text-ink-faint hover:text-ink"
+              >
+                ← Regiones
+              </button>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {subregiones.map(([sub, cantidad]) => (
+                  <TarjetaCard
+                    key={sub}
+                    titulo={sub}
+                    cantidad={cantidad}
+                    onClick={() => onElegirSubregion(sub)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+
+          {!cargando && !error && (nivel === "protocolos" || nivel === "resultados") && (
+            <>
+              {nivel === "protocolos" && (
                 <button
-                  onClick={onVolverARegiones}
+                  onClick={tieneSubregiones ? onVolverASubregiones : onVolverARegiones}
                   className="mb-4 text-xs text-ink-faint hover:text-ink"
                 >
-                  ← Regiones
+                  {tieneSubregiones ? "← " + regionInicial : "← Regiones"}
                 </button>
               )}
 
@@ -255,10 +332,10 @@ function ListaProtocolos({
               )}
 
               <div className="flex flex-col gap-6">
-                {porRegion.map(([region, items]) => (
-                  <section key={region}>
-                    {buscando && (
-                      <h2 className="mb-2 text-sm font-semibold text-ink">{region}</h2>
+                {porRegion.map(([clave, items]) => (
+                  <section key={clave}>
+                    {nivel === "resultados" && (
+                      <h2 className="mb-2 text-sm font-semibold text-ink">{clave}</h2>
                     )}
                     <div className="overflow-hidden rounded border border-border">
                       {items.map((p, i) => (
@@ -299,11 +376,13 @@ function Contenido() {
   const modalidadParam = searchParams.get("modalidad");
   const modalidad = esModalidad(modalidadParam) ? modalidadParam : null;
   const region = searchParams.get("region");
+  const subregion = searchParams.get("subregion");
 
-  function irA(m: Modalidad | null, r?: string | null) {
+  function irA(m: Modalidad | null, r?: string | null, s?: string | null) {
     const params = new URLSearchParams();
     if (m) params.set("modalidad", m);
     if (r) params.set("region", r);
+    if (s) params.set("subregion", s);
     const qs = params.toString();
     router.push(qs ? `/protocolos?${qs}` : "/protocolos");
   }
@@ -317,10 +396,13 @@ function Contenido() {
         <ListaProtocolos
           modalidad={modalidad}
           regionInicial={region}
+          subregionInicial={subregion}
           onCambiarModalidad={(m) => irA(m)}
           onVolverAModalidades={() => irA(null)}
           onElegirRegion={(r) => irA(modalidad, r)}
+          onElegirSubregion={(s) => irA(modalidad, region, s)}
           onVolverARegiones={() => irA(modalidad)}
+          onVolverASubregiones={() => irA(modalidad, region)}
         />
       )}
     </div>

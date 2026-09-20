@@ -39,6 +39,7 @@ export interface Protocolo {
   id: string;
   modalidad: Modalidad;
   region: string;
+  subregion?: string | null;
   patologia: string;
   indicacion: string | null;
   usaContraste: boolean;
