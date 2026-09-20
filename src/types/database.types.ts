@@ -30,6 +30,11 @@ export interface Perfil {
   nombre: string | null;
 }
 
+export interface VideoProtocolo {
+  etiqueta: string;
+  url: string;
+}
+
 export interface Protocolo {
   id: string;
   modalidad: Modalidad;
@@ -39,9 +44,12 @@ export interface Protocolo {
   usaContraste: boolean;
   detalleContraste: string | null;
   pasos: PasoProtocolo[];
+  reconstrucciones?: PasoProtocolo[];
   parametrosPorEdad?: ParametrosPorGrupo[];
+  postProceso: string | null;
   notas: string | null;
   imagenes: (ImagenProtocolo | string)[];
+  videos?: VideoProtocolo[];
   createdBy: string | null;
   createdAt: number;
   updatedAt: number;

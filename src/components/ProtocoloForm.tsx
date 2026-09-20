@@ -13,7 +13,13 @@ import { db } from "@/lib/firebase/client";
 import { MODALIDADES } from "@/lib/modalidades";
 import { normalizarImagen } from "@/lib/imagenes";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import type { ImagenProtocolo, Modalidad, PasoProtocolo, Protocolo } from "@/types/database.types";
+import type {
+  ImagenProtocolo,
+  Modalidad,
+  PasoProtocolo,
+  Protocolo,
+  VideoProtocolo,
+} from "@/types/database.types";
 
 const MAX_IMAGENES = 4;
 const ANCHO_MAXIMO = 900;
@@ -61,7 +67,12 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [pasos, setPasos] = useState<PasoProtocolo[]>(
     inicial?.pasos?.length ? inicial.pasos : [{ titulo: "", detalle: "" }]
   );
+  const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
+    inicial?.reconstrucciones ?? []
+  );
   const [notas, setNotas] = useState(inicial?.notas ?? "");
+  const [postProceso, setPostProceso] = useState(inicial?.postProceso ?? "");
+  const [videos, setVideos] = useState<VideoProtocolo[]>(inicial?.videos ?? []);
   const [imagenes, setImagenes] = useState<ImagenProtocolo[]>(
     (inicial?.imagenes ?? []).map(normalizarImagen)
   );
@@ -79,6 +90,32 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function quitarPaso(i: number) {
     setPasos((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
+    setReconstrucciones((prev) =>
+      prev.map((r, idx) => (idx === i ? { ...r, [campo]: valor } : r))
+    );
+  }
+
+  function agregarReconstruccion() {
+    setReconstrucciones((prev) => [...prev, { titulo: "", detalle: "" }]);
+  }
+
+  function quitarReconstruccion(i: number) {
+    setReconstrucciones((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function agregarVideo() {
+    setVideos((prev) => [...prev, { etiqueta: `Video ${prev.length + 1}`, url: "" }]);
+  }
+
+  function actualizarVideo(i: number, campo: keyof VideoProtocolo, valor: string) {
+    setVideos((prev) => prev.map((v, idx) => (idx === i ? { ...v, [campo]: valor } : v)));
+  }
+
+  function quitarVideo(i: number) {
+    setVideos((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   async function agregarImagen(file: File) {
@@ -125,8 +162,11 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       usaContraste,
       detalleContraste: usaContraste ? detalleContraste.trim() || null : null,
       pasos: pasos.filter((p) => p.titulo.trim().length > 0),
+      reconstrucciones: reconstrucciones.filter((r) => r.titulo.trim().length > 0),
+      postProceso: postProceso.trim() || null,
       notas: notas.trim() || null,
       imagenes,
+      videos: videos.filter((v) => v.url.trim().length > 0),
       updatedAt: serverTimestamp(),
     };
 
@@ -277,6 +317,59 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         </div>
       </div>
 
+      {modalidad === "TC" && (
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-medium text-ink-dim">
+              Reconstrucciones
+            </label>
+            <button
+              type="button"
+              onClick={agregarReconstruccion}
+              className="text-xs text-rm hover:underline"
+            >
+              + Agregar reconstrucción
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            {reconstrucciones.map((r, i) => (
+              <div key={i} className="flex gap-3 rounded border border-border bg-surface p-3">
+                <span className="mt-2 font-mono text-xs text-ink-faint">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="flex-1 space-y-2">
+                  <input
+                    value={r.titulo}
+                    onChange={(e) => actualizarReconstruccion(i, "titulo", e.target.value)}
+                    placeholder="Título (ej: MIP coronal 20mm)"
+                    className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                  <textarea
+                    value={r.detalle}
+                    onChange={(e) => actualizarReconstruccion(i, "detalle", e.target.value)}
+                    placeholder="Detalle (grosor, plano, filtro, secuencia de origen, etc.)"
+                    rows={2}
+                    className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => quitarReconstruccion(i)}
+                  className="self-start text-xs text-ink-faint hover:text-alert"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+            {reconstrucciones.length === 0 && (
+              <p className="text-xs text-ink-faint">
+                Todavía no agregaste reconstrucciones para este estudio.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div>
         <div className="mb-1.5 flex items-center justify-between">
           <label className="text-xs font-medium text-ink-dim">
@@ -337,6 +430,59 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         <p className="mt-1.5 text-[11px] text-ink-faint">
           Se comprimen automáticamente al subirlas. Máximo {MAX_IMAGENES} por protocolo.
         </p>
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <label className="text-xs font-medium text-ink-dim">
+            Videos (link de YouTube o Google Drive)
+          </label>
+          <button
+            type="button"
+            onClick={agregarVideo}
+            className="text-xs text-rm hover:underline"
+          >
+            + Agregar video
+          </button>
+        </div>
+        <div className="flex flex-col gap-2">
+          {videos.map((v, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                value={v.etiqueta}
+                onChange={(e) => actualizarVideo(i, "etiqueta", e.target.value)}
+                placeholder="Nombre"
+                className="w-32 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+              />
+              <input
+                value={v.url}
+                onChange={(e) => actualizarVideo(i, "url", e.target.value)}
+                placeholder="https://youtube.com/... o https://drive.google.com/..."
+                className="flex-1 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+              />
+              <button
+                type="button"
+                onClick={() => quitarVideo(i)}
+                className="text-xs text-ink-faint hover:text-alert"
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-xs font-medium text-ink-dim">
+          Post-proceso
+        </label>
+        <textarea
+          value={postProceso}
+          onChange={(e) => setPostProceso(e.target.value)}
+          rows={3}
+          placeholder="Qué hay que hacer con las secuencias después de la adquisición (reconstrucciones, fusiones, mediciones, etc.)"
+          className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm"
+        />
       </div>
 
       <div>
