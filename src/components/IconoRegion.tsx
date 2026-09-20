@@ -17,7 +17,7 @@ export function IconoRegion({
 
   if (error) {
     return (
-      <span className={`flex items-center justify-center font-semibold ${className ?? ""}`}>
+      <span className={`flex items-center justify-center text-lg font-semibold ${className ?? ""}`}>
         {region.charAt(0).toUpperCase()}
       </span>
     );
