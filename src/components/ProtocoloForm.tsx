@@ -68,6 +68,9 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [pasos, setPasos] = useState<PasoProtocolo[]>(
     inicial?.pasos?.length ? inicial.pasos : [{ titulo: "", detalle: "" }]
   );
+  const [pasosConContraste, setPasosConContraste] = useState<PasoProtocolo[]>(
+    inicial?.pasosConContraste ?? []
+  );
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -91,6 +94,20 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function quitarPaso(i: number) {
     setPasos((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function actualizarPasoContraste(i: number, campo: keyof PasoProtocolo, valor: string) {
+    setPasosConContraste((prev) =>
+      prev.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p))
+    );
+  }
+
+  function agregarPasoContraste() {
+    setPasosConContraste((prev) => [...prev, { titulo: "", detalle: "" }]);
+  }
+
+  function quitarPasoContraste(i: number) {
+    setPasosConContraste((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
@@ -164,6 +181,9 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       usaContraste,
       detalleContraste: usaContraste ? detalleContraste.trim() || null : null,
       pasos: pasos.filter((p) => p.titulo.trim().length > 0),
+      pasosConContraste: usaContraste
+        ? pasosConContraste.filter((p) => p.titulo.trim().length > 0)
+        : [],
       reconstrucciones: reconstrucciones.filter((r) => r.titulo.trim().length > 0),
       postProceso: postProceso.trim() || null,
       notas: notas.trim() || null,
@@ -329,6 +349,58 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           ))}
         </div>
       </div>
+
+      {usaContraste && (
+        <div className="rounded border border-tc-dim bg-tc-dim/5 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-medium text-tc">
+              Secuencias adicionales con contraste
+            </label>
+            <button
+              type="button"
+              onClick={agregarPasoContraste}
+              className="text-xs text-rm hover:underline"
+            >
+              + Agregar secuencia
+            </button>
+          </div>
+          <p className="mb-3 text-[11px] text-ink-faint">
+            Estas se suman a las de arriba cuando el técnico elige &quot;Con contraste&quot; en
+            la ficha. Dejalo vacío si este estudio no tiene una lista separada.
+          </p>
+          <div className="flex flex-col gap-3">
+            {pasosConContraste.map((paso, i) => (
+              <div key={i} className="flex gap-3 rounded border border-border bg-surface p-3">
+                <span className="mt-2 font-mono text-xs text-ink-faint">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <div className="flex-1 space-y-2">
+                  <input
+                    value={paso.titulo}
+                    onChange={(e) => actualizarPasoContraste(i, "titulo", e.target.value)}
+                    placeholder="Título de la secuencia (ej: Sag T1 C/C)"
+                    className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                  <textarea
+                    value={paso.detalle}
+                    onChange={(e) => actualizarPasoContraste(i, "detalle", e.target.value)}
+                    placeholder="Detalle (opcional)"
+                    rows={2}
+                    className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => quitarPasoContraste(i)}
+                  className="self-start text-xs text-ink-faint hover:text-alert"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {modalidad === "TC" && (
         <div>

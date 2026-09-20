@@ -45,6 +45,7 @@ export interface Protocolo {
   usaContraste: boolean;
   detalleContraste: string | null;
   pasos: PasoProtocolo[];
+  pasosConContraste?: PasoProtocolo[];
   reconstrucciones?: PasoProtocolo[];
   parametrosPorEdad?: ParametrosPorGrupo[];
   postProceso: string | null;

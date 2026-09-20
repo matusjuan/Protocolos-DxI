@@ -21,6 +21,7 @@ function DetalleProtocolo() {
   const [protocolo, setProtocolo] = useState<Protocolo | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [conContraste, setConContraste] = useState(false);
 
   useEffect(() => {
     if (!id) {
@@ -138,11 +139,36 @@ function DetalleProtocolo() {
 
           {protocolo.pasos?.length > 0 && (
             <div className="mb-6">
-              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
-                Técnica
-              </p>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-wide text-ink-faint">
+                  Técnica
+                </p>
+                {protocolo.pasosConContraste && protocolo.pasosConContraste.length > 0 && (
+                  <div className="flex gap-1 rounded border border-border bg-surface p-0.5">
+                    <button
+                      onClick={() => setConContraste(false)}
+                      className={`rounded px-2.5 py-1 text-xs transition-colors ${
+                        !conContraste ? "bg-surface2 text-ink" : "text-ink-faint hover:text-ink"
+                      }`}
+                    >
+                      Sin contraste
+                    </button>
+                    <button
+                      onClick={() => setConContraste(true)}
+                      className={`rounded px-2.5 py-1 text-xs transition-colors ${
+                        conContraste ? "bg-tc-dim text-ink" : "text-ink-faint hover:text-ink"
+                      }`}
+                    >
+                      Con contraste
+                    </button>
+                  </div>
+                )}
+              </div>
               <ol className="flex flex-col gap-3">
-                {protocolo.pasos.map((paso, i) => (
+                {(conContraste
+                  ? [...protocolo.pasos, ...(protocolo.pasosConContraste ?? [])]
+                  : protocolo.pasos
+                ).map((paso, i) => (
                   <li
                     key={i}
                     className="flex gap-3 rounded border border-border bg-surface p-4"
