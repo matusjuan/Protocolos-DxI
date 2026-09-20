@@ -10,6 +10,29 @@ import { db } from "@/lib/firebase/client";
 import { MODALIDADES, metaModalidad } from "@/lib/modalidades";
 import type { Modalidad, Protocolo } from "@/types/database.types";
 
+function IconoModalidad({ modalidad, className }: { modalidad: Modalidad; className?: string }) {
+  const [error, setError] = useState(false);
+  const slug = modalidad.toLowerCase();
+
+  if (error) {
+    return (
+      <span className={`flex items-center justify-center font-mono text-lg font-semibold ${className ?? ""}`}>
+        {modalidad}
+      </span>
+    );
+  }
+
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`/iconos-modalidad/${slug}.png`}
+      alt=""
+      className={`object-contain ${className ?? ""}`}
+      onError={() => setError(true)}
+    />
+  );
+}
+
 function SelectorModalidad({ onElegir }: { onElegir: (m: Modalidad) => void }) {
   return (
     <div className="flex flex-1 items-center justify-center p-6">
@@ -28,9 +51,9 @@ function SelectorModalidad({ onElegir }: { onElegir: (m: Modalidad) => void }) {
               className="group flex flex-col items-center gap-3 rounded-lg border border-border bg-surface p-6 transition-all hover:-translate-y-0.5 hover:border-rm-dim hover:bg-surface2 hover:shadow-lg"
             >
               <span
-                className={`flex h-16 w-16 items-center justify-center rounded-full ${m.fondoDim} ${m.texto} font-mono text-lg font-semibold transition-transform group-hover:scale-105`}
+                className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-full ${m.fondoDim} ${m.texto} ring-1 ring-border transition-transform group-hover:scale-105`}
               >
-                {m.valor}
+                <IconoModalidad modalidad={m.valor} className="h-12 w-12" />
               </span>
               <span className="text-sm font-medium text-ink">{m.etiqueta}</span>
             </button>
