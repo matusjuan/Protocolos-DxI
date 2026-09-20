@@ -27,7 +27,7 @@ function IconoModalidad({ modalidad, className }: { modalidad: Modalidad; classN
     <img
       src={`/iconos-modalidad/${slug}.png`}
       alt=""
-      className={`object-contain ${className ?? ""}`}
+      className={`object-cover ${className ?? ""}`}
       onError={() => setError(true)}
     />
   );
@@ -51,9 +51,9 @@ function SelectorModalidad({ onElegir }: { onElegir: (m: Modalidad) => void }) {
               className="group flex flex-col items-center gap-3 rounded-lg border border-border bg-surface p-6 transition-all hover:-translate-y-0.5 hover:border-rm-dim hover:bg-surface2 hover:shadow-lg"
             >
               <span
-                className={`flex h-16 w-16 items-center justify-center overflow-hidden rounded-full ${m.fondoDim} ${m.texto} ring-1 ring-border transition-transform group-hover:scale-105`}
+                className={`flex h-24 w-24 items-center justify-center overflow-hidden rounded-full ${m.fondoDim} ${m.texto} ring-1 ring-border transition-transform group-hover:scale-105`}
               >
-                <IconoModalidad modalidad={m.valor} className="h-12 w-12" />
+                <IconoModalidad modalidad={m.valor} className="h-full w-full" />
               </span>
               <span className="text-sm font-medium text-ink">{m.etiqueta}</span>
             </button>
