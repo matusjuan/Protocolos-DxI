@@ -112,10 +112,6 @@ export default function LoginPage() {
             {enviando ? "Ingresando…" : "Ingresar"}
           </button>
         </form>
-
-        <p className="mt-6 text-center text-[11px] text-ink-faint">
-          Diseño: Lic. Juan Ignacio Matus · Septiembre &apos;26
-        </p>
       </div>
     </div>
   );

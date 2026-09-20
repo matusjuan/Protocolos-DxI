@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { RutaProtegida } from "@/components/RutaProtegida";
 import { Encabezado } from "@/components/Encabezado";
@@ -9,6 +10,10 @@ import { IconoRegion } from "@/components/IconoRegion";
 import { db } from "@/lib/firebase/client";
 import { MODALIDADES, metaModalidad } from "@/lib/modalidades";
 import type { Modalidad, Protocolo } from "@/types/database.types";
+
+function esModalidad(v: string | null): v is Modalidad {
+  return v === "RM" || v === "TC" || v === "RX";
+}
 
 function IconoModalidad({ modalidad, className }: { modalidad: Modalidad; className?: string }) {
   const [error, setError] = useState(false);
@@ -66,15 +71,20 @@ function SelectorModalidad({ onElegir }: { onElegir: (m: Modalidad) => void }) {
 
 function ListaProtocolos({
   modalidad,
-  onVolverAModalidades,
+  regionInicial,
   onCambiarModalidad,
+  onVolverAModalidades,
+  onElegirRegion,
+  onVolverARegiones,
 }: {
   modalidad: Modalidad;
-  onVolverAModalidades: () => void;
+  regionInicial: string | null;
   onCambiarModalidad: (m: Modalidad) => void;
+  onVolverAModalidades: () => void;
+  onElegirRegion: (region: string) => void;
+  onVolverARegiones: () => void;
 }) {
   const [busqueda, setBusqueda] = useState("");
-  const [regionSeleccionada, setRegionSeleccionada] = useState<string | null>(null);
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +93,6 @@ function ListaProtocolos({
     let activo = true;
     setCargando(true);
     setError(null);
-    setRegionSeleccionada(null);
     setBusqueda("");
     const q = query(collection(db, "protocolos"), where("modalidad", "==", modalidad));
     getDocs(q)
@@ -131,9 +140,7 @@ function ListaProtocolos({
   }, [protocolos]);
 
   const porRegion = useMemo(() => {
-    const base = buscando
-      ? filtrados
-      : filtrados.filter((p) => p.region === regionSeleccionada);
+    const base = buscando ? filtrados : filtrados.filter((p) => p.region === regionInicial);
     const mapa = new Map<string, Protocolo[]>();
     for (const p of base) {
       const lista = mapa.get(p.region) ?? [];
@@ -141,10 +148,10 @@ function ListaProtocolos({
       mapa.set(p.region, lista);
     }
     return Array.from(mapa.entries());
-  }, [filtrados, buscando, regionSeleccionada]);
+  }, [filtrados, buscando, regionInicial]);
 
   const meta = metaModalidad(modalidad);
-  const mostrarTarjetasDeRegion = !buscando && !regionSeleccionada;
+  const mostrarTarjetasDeRegion = !buscando && !regionInicial;
 
   return (
     <div className="flex flex-1 overflow-hidden">
@@ -213,7 +220,7 @@ function ListaProtocolos({
               {regiones.map(([region, cantidad]) => (
                 <button
                   key={region}
-                  onClick={() => setRegionSeleccionada(region)}
+                  onClick={() => onElegirRegion(region)}
                   className="group flex flex-col items-start gap-3 rounded-lg border border-border bg-surface p-4 text-left transition-all hover:-translate-y-0.5 hover:border-rm-dim hover:bg-surface2 hover:shadow-lg"
                 >
                   <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-surface2 ring-1 ring-border transition-transform group-hover:scale-105">
@@ -234,7 +241,7 @@ function ListaProtocolos({
             <>
               {!buscando && (
                 <button
-                  onClick={() => setRegionSeleccionada(null)}
+                  onClick={onVolverARegiones}
                   className="mb-4 text-xs text-ink-faint hover:text-ink"
                 >
                   ← Regiones
@@ -286,18 +293,34 @@ function ListaProtocolos({
 }
 
 function Contenido() {
-  const [modalidad, setModalidad] = useState<Modalidad | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const modalidadParam = searchParams.get("modalidad");
+  const modalidad = esModalidad(modalidadParam) ? modalidadParam : null;
+  const region = searchParams.get("region");
+
+  function irA(m: Modalidad | null, r?: string | null) {
+    const params = new URLSearchParams();
+    if (m) params.set("modalidad", m);
+    if (r) params.set("region", r);
+    const qs = params.toString();
+    router.push(qs ? `/protocolos?${qs}` : "/protocolos");
+  }
 
   return (
     <div className="flex h-screen flex-col bg-bg">
       <Encabezado />
       {modalidad === null ? (
-        <SelectorModalidad onElegir={setModalidad} />
+        <SelectorModalidad onElegir={(m) => irA(m)} />
       ) : (
         <ListaProtocolos
           modalidad={modalidad}
-          onVolverAModalidades={() => setModalidad(null)}
-          onCambiarModalidad={setModalidad}
+          regionInicial={region}
+          onCambiarModalidad={(m) => irA(m)}
+          onVolverAModalidades={() => irA(null)}
+          onElegirRegion={(r) => irA(modalidad, r)}
+          onVolverARegiones={() => irA(modalidad)}
         />
       )}
     </div>
@@ -307,7 +330,15 @@ function Contenido() {
 export default function ProtocolosPage() {
   return (
     <RutaProtegida>
-      <Contenido />
+      <Suspense
+        fallback={
+          <div className="flex h-screen items-center justify-center bg-bg">
+            <p className="font-mono text-sm text-ink-faint">Cargando…</p>
+          </div>
+        }
+      >
+        <Contenido />
+      </Suspense>
     </RutaProtegida>
   );
 }

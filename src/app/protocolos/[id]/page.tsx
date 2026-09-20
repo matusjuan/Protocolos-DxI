@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { RutaProtegida } from "@/components/RutaProtegida";
 import { Encabezado } from "@/components/Encabezado";
@@ -16,6 +16,7 @@ import type { Protocolo } from "@/types/database.types";
 
 function DetalleProtocolo() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { rol } = useAuth();
   const [protocolo, setProtocolo] = useState<Protocolo | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -78,12 +79,17 @@ function DetalleProtocolo() {
       <Encabezado />
       <main className="flex-1 overflow-y-auto scrollbar-thin">
         <div className="mx-auto max-w-3xl px-6 py-8">
-          <Link
-            href="/protocolos"
-            className="mb-4 inline-block text-xs text-ink-faint hover:text-ink"
-          >
-            ← Volver
-          </Link>
+          <div className="mb-4 flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="text-xs text-ink-faint hover:text-ink"
+            >
+              ← Volver
+            </button>
+            <Link href="/protocolos" className="text-xs text-ink-faint hover:text-ink">
+              Inicio
+            </Link>
+          </div>
 
           <div className="mb-6 flex items-center gap-3">
             <span

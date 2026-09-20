@@ -25,6 +25,9 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>{children}</AuthProvider>
+        <p className="pointer-events-none fixed bottom-1.5 right-2 z-40 text-[10px] text-ink-faint/70">
+          Diseño: Lic. Juan Ignacio Matus · Septiembre &apos;26
+        </p>
       </body>
     </html>
   );
