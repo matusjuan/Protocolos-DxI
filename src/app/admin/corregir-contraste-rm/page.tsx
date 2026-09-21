@@ -76,8 +76,8 @@ function AplicarCorreccion() {
             Corregir Columna total y Plexos (selector de contraste)
           </h1>
           <p className="mb-6 text-sm text-ink-dim">
-            Separa la lista de secuencias de estos 3 protocolos en "sin contraste" / "con
-            contraste", usando el separador de texto que tenían como corte. Se puede correr
+            Separa la lista de secuencias de estos 3 protocolos en “sin contraste” / “con
+            contraste”, usando el separador de texto que tenían como corte. Se puede correr
             más de una vez sin problema.
           </p>
 
