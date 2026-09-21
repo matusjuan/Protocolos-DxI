@@ -121,6 +121,34 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       )
     );
   }
+
+  function moverPasoZona(
+    i: number,
+    lista: "pasos" | "pasosConContraste",
+    j: number,
+    direccion: -1 | 1
+  ) {
+    setZonas((prev) =>
+      prev.map((z, idx) => {
+        if (idx !== i) return z;
+        const arr = [...(z[lista] ?? [])];
+        const k = j + direccion;
+        if (k < 0 || k >= arr.length) return z;
+        [arr[j], arr[k]] = [arr[k], arr[j]];
+        return { ...z, [lista]: arr };
+      })
+    );
+  }
+
+  function agregarMarcadorInyeccionZona(i: number) {
+    setZonas((prev) =>
+      prev.map((z, idx) =>
+        idx === i
+          ? { ...z, pasos: [...z.pasos, { titulo: "💉 Acá se inyecta el contraste", detalle: "" }] }
+          : z
+      )
+    );
+  }
   const [detalleContraste, setDetalleContraste] = useState(
     inicial?.detalleContraste ?? ""
   );
@@ -499,46 +527,90 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                 </div>
 
                 <p className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">
-                  Secuencias base (siempre)
+                  Secuencias base (siempre) — poné acá el marcador de inyección en el punto
+                  donde esta zona sola se inyectaría
                 </p>
                 <div className="mb-3 flex flex-col gap-2 pl-2">
-                  {z.pasos.map((paso, j) => (
-                    <div key={j} className="flex gap-2 rounded border border-border bg-bg p-2">
-                      <div className="flex-1 space-y-1.5">
-                        <input
-                          value={paso.titulo}
-                          onChange={(e) =>
-                            actualizarPasoZona(i, "pasos", j, "titulo", e.target.value)
-                          }
-                          placeholder="Título de la secuencia"
-                          className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
-                        />
-                        <textarea
-                          value={paso.detalle}
-                          onChange={(e) =>
-                            actualizarPasoZona(i, "pasos", j, "detalle", e.target.value)
-                          }
-                          placeholder="Cómo se programa (opcional)"
-                          rows={2}
-                          className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => quitarPasoZona(i, "pasos", j)}
-                        className="self-start text-xs text-ink-faint hover:text-alert"
+                  {z.pasos.map((paso, j) => {
+                    const esMarcador = paso.titulo.includes("inyecta el contraste");
+                    return (
+                      <div
+                        key={j}
+                        className={`flex gap-2 rounded border p-2 ${
+                          esMarcador ? "border-tc-dim bg-tc-dim/10" : "border-border bg-bg"
+                        }`}
                       >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => agregarPasoZona(i, "pasos")}
-                    className="self-start text-xs text-rm hover:underline"
-                  >
-                    + Agregar secuencia base
-                  </button>
+                        <div className="flex flex-col items-center gap-0.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => moverPasoZona(i, "pasos", j, -1)}
+                            disabled={j === 0}
+                            className="text-ink-faint hover:text-ink disabled:opacity-20"
+                            aria-label="Subir"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moverPasoZona(i, "pasos", j, 1)}
+                            disabled={j === z.pasos.length - 1}
+                            className="text-ink-faint hover:text-ink disabled:opacity-20"
+                            aria-label="Bajar"
+                          >
+                            ▼
+                          </button>
+                        </div>
+                        {esMarcador ? (
+                          <div className="flex flex-1 items-center text-sm font-semibold text-tc">
+                            💉 Acá se inyecta el contraste
+                          </div>
+                        ) : (
+                          <div className="flex-1 space-y-1.5">
+                            <input
+                              value={paso.titulo}
+                              onChange={(e) =>
+                                actualizarPasoZona(i, "pasos", j, "titulo", e.target.value)
+                              }
+                              placeholder="Título de la secuencia"
+                              className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                            />
+                            <textarea
+                              value={paso.detalle}
+                              onChange={(e) =>
+                                actualizarPasoZona(i, "pasos", j, "detalle", e.target.value)
+                              }
+                              placeholder="Cómo se programa (opcional)"
+                              rows={2}
+                              className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                            />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => quitarPasoZona(i, "pasos", j)}
+                          className="self-start text-xs text-ink-faint hover:text-alert"
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => agregarPasoZona(i, "pasos")}
+                      className="self-start text-xs text-rm hover:underline"
+                    >
+                      + Agregar secuencia base
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => agregarMarcadorInyeccionZona(i)}
+                      className="self-start text-xs text-tc hover:underline"
+                    >
+                      💉 + Marcador de inyección
+                    </button>
+                  </div>
                 </div>
 
                 <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">

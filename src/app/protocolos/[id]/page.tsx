@@ -157,14 +157,29 @@ function DetalleProtocolo() {
             const itemsFinal: typeof protocolo.pasos = tieneZonas
               ? (() => {
                   const zonas = protocolo.zonas!;
-                  const bases = zonas.flatMap((z) => z.pasos);
-                  const algunaConContraste = zonas.some((_, i) => contrasteZonas[i]);
-                  const posts = zonas.flatMap((z, i) =>
-                    contrasteZonas[i] ? z.pasosConContraste ?? [] : []
-                  );
-                  return algunaConContraste
-                    ? [...bases, { titulo: "💉 Acá se inyecta el contraste", detalle: "" }, ...posts]
-                    : bases;
+                  const partes = zonas.map((z, i) => {
+                    const idx = z.pasos.findIndex((p) =>
+                      p.titulo.includes("inyecta el contraste")
+                    );
+                    const pre = idx === -1 ? z.pasos : z.pasos.slice(0, idx);
+                    const post = idx === -1 ? [] : z.pasos.slice(idx + 1);
+                    return { pre, post, postCC: z.pasosConContraste ?? [], on: !!contrasteZonas[i] };
+                  });
+                  const algunaOn = partes.some((p) => p.on);
+                  const preTotal = partes.flatMap((p) => (p.on ? p.pre : [...p.pre, ...p.post]));
+                  const postTotal = algunaOn
+                    ? [...partes]
+                        .reverse()
+                        .filter((p) => p.on)
+                        .flatMap((p) => [...p.post, ...p.postCC])
+                    : [];
+                  return algunaOn
+                    ? [
+                        ...preTotal,
+                        { titulo: "💉 Acá se inyecta el contraste", detalle: "" },
+                        ...postTotal,
+                      ]
+                    : preTotal;
                 })()
               : conContraste && protocolo.pasosConContraste?.length
                 ? protocolo.pasosConContraste
