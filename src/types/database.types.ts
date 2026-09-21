@@ -38,12 +38,6 @@ export interface VideoProtocolo {
   mostrarEn?: "sin" | "con" | "ambos";
 }
 
-export interface ZonaProtocolo {
-  nombre: string;
-  pasos: PasoProtocolo[];
-  pasosConContraste?: PasoProtocolo[];
-}
-
 export interface Protocolo {
   id: string;
   modalidad: Modalidad;
@@ -55,7 +49,6 @@ export interface Protocolo {
   detalleContraste: string | null;
   pasos: PasoProtocolo[];
   pasosConContraste?: PasoProtocolo[];
-  zonas?: ZonaProtocolo[];
   reconstrucciones?: PasoProtocolo[];
   parametrosPorEdad?: ParametrosPorGrupo[];
   postProceso: string | null;

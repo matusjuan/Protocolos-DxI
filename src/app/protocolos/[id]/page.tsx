@@ -22,12 +22,7 @@ function DetalleProtocolo() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conContraste, setConContraste] = useState(false);
-  const [contrasteZonas, setContrasteZonas] = useState<Record<number, boolean>>({});
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
-
-  function alternarContrasteZona(i: number) {
-    setContrasteZonas((prev) => ({ ...prev, [i]: !prev[i] }));
-  }
 
   function alternarCondicion(condicion: string) {
     setCondicionesActivas((prev) => {
@@ -151,37 +146,9 @@ function DetalleProtocolo() {
             <TablaParametros grupos={protocolo.parametrosPorEdad} />
           )}
 
-          {(protocolo.zonas?.length || protocolo.pasos?.length > 0) && (() => {
-            const tieneZonas = !!protocolo.zonas?.length;
-
-            const itemsFinal: typeof protocolo.pasos = tieneZonas
-              ? (() => {
-                  const zonas = protocolo.zonas!;
-                  const partes = zonas.map((z, i) => {
-                    const idx = z.pasos.findIndex((p) =>
-                      p.titulo.includes("inyecta el contraste")
-                    );
-                    const pre = idx === -1 ? z.pasos : z.pasos.slice(0, idx);
-                    const post = idx === -1 ? [] : z.pasos.slice(idx + 1);
-                    return { pre, post, postCC: z.pasosConContraste ?? [], on: !!contrasteZonas[i] };
-                  });
-                  const algunaOn = partes.some((p) => p.on);
-                  const preTotal = partes.flatMap((p) => (p.on ? p.pre : [...p.pre, ...p.post]));
-                  const postTotal = algunaOn
-                    ? [...partes]
-                        .reverse()
-                        .filter((p) => p.on)
-                        .flatMap((p) => [...p.post, ...p.postCC])
-                    : [];
-                  return algunaOn
-                    ? [
-                        ...preTotal,
-                        { titulo: "💉 Acá se inyecta el contraste", detalle: "" },
-                        ...postTotal,
-                      ]
-                    : preTotal;
-                })()
-              : conContraste && protocolo.pasosConContraste?.length
+          {protocolo.pasos?.length > 0 && (() => {
+            const itemsFinal =
+              conContraste && protocolo.pasosConContraste?.length
                 ? protocolo.pasosConContraste
                 : protocolo.pasos;
 
@@ -195,61 +162,32 @@ function DetalleProtocolo() {
 
             return (
               <div className="mb-6">
-                {tieneZonas ? (
-                  <div className="mb-3 flex flex-col gap-2">
-                    {protocolo.zonas!.map((z, i) => (
-                      <div key={i} className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => setContrasteZonas((p) => ({ ...p, [i]: false }))}
-                          className={`rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-colors ${
-                            !contrasteZonas[i]
-                              ? "border-rm bg-rm-dim text-ink"
-                              : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
-                          }`}
-                        >
-                          {z.nombre} — Sin contraste
-                        </button>
-                        <button
-                          onClick={() => alternarContrasteZona(i)}
-                          className={`rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-colors ${
-                            contrasteZonas[i]
-                              ? "border-tc bg-tc-dim text-ink"
-                              : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
-                          }`}
-                        >
-                          {z.nombre} — Con contraste
-                        </button>
-                      </div>
-                    ))}
+                {protocolo.modalidad === "RM" && (
+                  <div className="mb-3 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setConContraste(false)}
+                      className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                        !conContraste
+                          ? "border-rm bg-rm-dim text-ink"
+                          : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
+                      }`}
+                    >
+                      Sin contraste
+                    </button>
+                    <button
+                      onClick={() => setConContraste(true)}
+                      className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                        conContraste
+                          ? "border-tc bg-tc-dim text-ink"
+                          : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
+                      }`}
+                    >
+                      Con contraste
+                    </button>
                   </div>
-                ) : (
-                  protocolo.modalidad === "RM" && (
-                    <div className="mb-3 grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setConContraste(false)}
-                        className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                          !conContraste
-                            ? "border-rm bg-rm-dim text-ink"
-                            : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
-                        }`}
-                      >
-                        Sin contraste
-                      </button>
-                      <button
-                        onClick={() => setConContraste(true)}
-                        className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                          conContraste
-                            ? "border-tc bg-tc-dim text-ink"
-                            : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
-                        }`}
-                      >
-                        Con contraste
-                      </button>
-                    </div>
-                  )
                 )}
 
-                {!tieneZonas && protocolo.usaContraste && (protocolo.modalidad !== "RM" || conContraste) && (
+                {protocolo.usaContraste && (protocolo.modalidad !== "RM" || conContraste) && (
                   <div className="mb-4 rounded border border-tc-dim bg-tc-dim/10 p-4">
                     <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
                       Contraste
@@ -264,7 +202,7 @@ function DetalleProtocolo() {
                   Técnica
                 </p>
 
-                {!tieneZonas && conContraste && !protocolo.pasosConContraste?.length && (
+                {conContraste && !protocolo.pasosConContraste?.length && (
                   <p className="mb-2 text-xs text-ink-faint">
                     Todavía no hay una lista de secuencias con contraste cargada para este
                     estudio — se muestra la misma técnica de base.

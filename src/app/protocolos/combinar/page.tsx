@@ -1,0 +1,330 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { RutaProtegida } from "@/components/RutaProtegida";
+import { Encabezado } from "@/components/Encabezado";
+import { db } from "@/lib/firebase/client";
+import type { PasoProtocolo, Protocolo } from "@/types/database.types";
+
+interface ItemMezcla extends PasoProtocolo {
+  _origen: string;
+}
+
+function ArmarCombinado() {
+  const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [seleccionIds, setSeleccionIds] = useState<string[]>([]);
+  const [contraste, setContraste] = useState<Record<string, boolean>>({});
+  const [pasosAbiertos, setPasosAbiertos] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    let activo = true;
+    const q = query(collection(db, "protocolos"), where("modalidad", "==", "RM"));
+    getDocs(q)
+      .then((snap) => {
+        if (!activo) return;
+        const datos = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }) as Protocolo)
+          .sort((a, b) => a.patologia.localeCompare(b.patologia));
+        setProtocolos(datos);
+        setCargando(false);
+      })
+      .catch((err) => {
+        if (!activo) return;
+        setError(err instanceof Error ? err.message : "Error desconocido");
+        setCargando(false);
+      });
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const seleccionados = useMemo(
+    () => seleccionIds.map((id) => protocolos.find((p) => p.id === id)).filter((p): p is Protocolo => !!p),
+    [seleccionIds, protocolos]
+  );
+
+  const disponibles = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return protocolos
+      .filter((p) => !seleccionIds.includes(p.id))
+      .filter(
+        (p) =>
+          !q ||
+          p.patologia.toLowerCase().includes(q) ||
+          p.region.toLowerCase().includes(q)
+      )
+      .slice(0, 30);
+  }, [protocolos, seleccionIds, busqueda]);
+
+  function agregar(id: string) {
+    setSeleccionIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setContraste((prev) => ({ ...prev, [id]: false }));
+    setBusqueda("");
+  }
+
+  function quitar(id: string) {
+    setSeleccionIds((prev) => prev.filter((x) => x !== id));
+  }
+
+  function mover(i: number, direccion: -1 | 1) {
+    setSeleccionIds((prev) => {
+      const j = i + direccion;
+      if (j < 0 || j >= prev.length) return prev;
+      const copia = [...prev];
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  }
+
+  function alternarPaso(i: number) {
+    setPasosAbiertos((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(i)) nuevo.delete(i);
+      else nuevo.add(i);
+      return nuevo;
+    });
+  }
+
+  const itemsFinal: ItemMezcla[] = useMemo(() => {
+    const partes = seleccionados.map((p) => {
+      const idx = p.pasos.findIndex((x) => x.titulo.includes("inyecta el contraste"));
+      const pre = idx === -1 ? p.pasos : p.pasos.slice(0, idx);
+      const post = idx === -1 ? [] : p.pasos.slice(idx + 1);
+      const on = !!contraste[p.id];
+      return { p, pre, post, postCC: p.pasosConContraste ?? [], on };
+    });
+
+    const conOrigen = (lista: PasoProtocolo[], origen: string): ItemMezcla[] =>
+      lista.map((x) => ({ ...x, _origen: origen }));
+
+    const algunaOn = partes.some((x) => x.on);
+
+    const preTotal = partes.flatMap((x) =>
+      x.on ? conOrigen(x.pre, x.p.patologia) : conOrigen([...x.pre, ...x.post], x.p.patologia)
+    );
+
+    const postTotal = algunaOn
+      ? [...partes]
+          .reverse()
+          .filter((x) => x.on)
+          .flatMap((x) => conOrigen([...x.post, ...x.postCC], x.p.patologia))
+      : [];
+
+    return algunaOn
+      ? [
+          ...preTotal,
+          { titulo: "💉 Acá se inyecta el contraste", detalle: "", _origen: "" },
+          ...postTotal,
+        ]
+      : preTotal;
+  }, [seleccionados, contraste]);
+
+  return (
+    <div className="flex h-screen flex-col bg-bg">
+      <Encabezado />
+      <main className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="mx-auto max-w-3xl px-6 py-6">
+          <Link href="/protocolos" className="mb-4 inline-block text-xs text-ink-faint hover:text-ink">
+            ← Volver a Protocolos
+          </Link>
+          <h1 className="mb-1 text-lg font-semibold text-ink">Armar estudio combinado</h1>
+          <p className="mb-6 text-sm text-ink-dim">
+            Elegí los estudios que se piden juntos (ej: Cerebro + Cervical), decidí cuáles van
+            con contraste, y armamos la técnica combinada.
+          </p>
+
+          {error && (
+            <div className="mb-4 rounded border border-alert-dim bg-alert-dim/10 p-4">
+              <p className="text-sm text-alert">Error al cargar protocolos: {error}</p>
+            </div>
+          )}
+
+          <div className="mb-6">
+            <label className="mb-1.5 block text-xs font-medium text-ink-dim">
+              Buscar y agregar un estudio
+            </label>
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Ej: Cerebro, Cervical, Órbitas…"
+              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm"
+            />
+            {busqueda && (
+              <div className="mt-2 overflow-hidden rounded border border-border">
+                {cargando && (
+                  <p className="p-3 font-mono text-xs text-ink-faint">Cargando…</p>
+                )}
+                {!cargando && disponibles.length === 0 && (
+                  <p className="p-3 text-xs text-ink-faint">No se encontraron estudios.</p>
+                )}
+                {disponibles.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => agregar(p.id)}
+                    className="flex w-full items-center justify-between border-b border-border bg-surface px-3 py-2 text-left text-sm last:border-b-0 hover:bg-surface2"
+                  >
+                    <span className="text-ink">{p.patologia}</span>
+                    <span className="text-xs text-ink-faint">{p.region} · + Agregar</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {seleccionados.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                Estudios elegidos (en este orden)
+              </p>
+              <div className="flex flex-col gap-2">
+                {seleccionados.map((p, i) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 rounded border border-border bg-surface p-3"
+                  >
+                    <div className="flex flex-col items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => mover(i, -1)}
+                        disabled={i === 0}
+                        className="text-ink-faint hover:text-ink disabled:opacity-20"
+                        aria-label="Subir"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => mover(i, 1)}
+                        disabled={i === seleccionados.length - 1}
+                        className="text-ink-faint hover:text-ink disabled:opacity-20"
+                        aria-label="Bajar"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <span className="flex-1 text-sm font-medium text-ink">{p.patologia}</span>
+                    <div className="flex gap-1 rounded border border-border p-0.5">
+                      <button
+                        onClick={() => setContraste((c) => ({ ...c, [p.id]: false }))}
+                        className={`rounded px-2 py-1 text-xs transition-colors ${
+                          !contraste[p.id] ? "bg-rm-dim text-ink" : "text-ink-faint hover:text-ink"
+                        }`}
+                      >
+                        Sin contraste
+                      </button>
+                      <button
+                        onClick={() => setContraste((c) => ({ ...c, [p.id]: true }))}
+                        className={`rounded px-2 py-1 text-xs transition-colors ${
+                          contraste[p.id] ? "bg-tc-dim text-ink" : "text-ink-faint hover:text-ink"
+                        }`}
+                      >
+                        Con contraste
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => quitar(p.id)}
+                      className="text-xs text-ink-faint hover:text-alert"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {seleccionados.length === 0 && !cargando && (
+            <div className="rounded border border-dashed border-border p-8 text-center">
+              <p className="text-sm text-ink-dim">
+                Buscá arriba y agregá los estudios que se piden juntos para ver la técnica
+                combinada.
+              </p>
+            </div>
+          )}
+
+          {seleccionados.length > 0 && (
+            <div>
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                Técnica combinada
+              </p>
+              <ol className="flex flex-col gap-2">
+                {itemsFinal.map((paso, i) => {
+                  const esMarcador = paso.titulo.includes("inyecta el contraste");
+                  if (esMarcador) {
+                    return (
+                      <li key={i} className="my-1 flex items-center gap-3 py-1">
+                        <span className="h-px flex-1 bg-tc-dim" />
+                        <span className="whitespace-nowrap text-xs font-semibold text-tc">
+                          {paso.titulo}
+                        </span>
+                        <span className="h-px flex-1 bg-tc-dim" />
+                      </li>
+                    );
+                  }
+                  const abierto = pasosAbiertos.has(i);
+                  const tieneContenido = (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;
+                  return (
+                    <li key={i} className="overflow-hidden rounded border border-border bg-surface">
+                      <button
+                        type="button"
+                        onClick={() => tieneContenido && alternarPaso(i)}
+                        className={`flex w-full items-center gap-3 p-4 text-left ${
+                          tieneContenido ? "cursor-pointer hover:bg-surface2" : "cursor-default"
+                        }`}
+                      >
+                        <span className="font-mono text-sm text-ink-faint">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="flex-1 text-sm font-medium text-ink">
+                          {paso.titulo}
+                          <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] font-normal text-ink-faint">
+                            {paso._origen}
+                          </span>
+                        </span>
+                        {tieneContenido && (
+                          <span className="text-xs text-ink-faint">{abierto ? "▲" : "▼"}</span>
+                        )}
+                      </button>
+                      {tieneContenido && abierto && (
+                        <div className="border-t border-border bg-bg px-4 py-3 pl-11">
+                          {paso.detalle && (
+                            <p className="whitespace-pre-line text-sm text-ink-dim">
+                              {paso.detalle}
+                            </p>
+                          )}
+                          {paso.imagen && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={paso.imagen}
+                              alt=""
+                              className={`max-h-72 rounded border border-border object-contain ${
+                                paso.detalle ? "mt-3" : ""
+                              }`}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export default function ArmarCombinadoPage() {
+  return (
+    <RutaProtegida>
+      <ArmarCombinado />
+    </RutaProtegida>
+  );
+}

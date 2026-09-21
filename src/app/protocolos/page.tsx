@@ -249,6 +249,15 @@ function ListaProtocolos({
             </button>
           ))}
         </div>
+
+        {modalidad === "RM" && (
+          <Link
+            href="/protocolos/combinar"
+            className="mt-4 block rounded border border-rm-dim bg-rm-dim/10 px-3 py-2 text-center text-xs font-medium text-rm hover:bg-rm-dim/20"
+          >
+            🧩 Armar estudio combinado
+          </Link>
+        )}
       </aside>
 
       <main className="flex-1 overflow-y-auto scrollbar-thin">
