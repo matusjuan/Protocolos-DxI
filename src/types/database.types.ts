@@ -34,6 +34,7 @@ export interface Perfil {
 export interface VideoProtocolo {
   etiqueta: string;
   url: string;
+  mostrarEn?: "sin" | "con" | "ambos";
 }
 
 export interface Protocolo {

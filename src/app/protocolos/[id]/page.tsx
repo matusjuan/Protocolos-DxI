@@ -282,18 +282,33 @@ function DetalleProtocolo() {
             <GaleriaImagenes imagenes={protocolo.imagenes} />
           )}
 
-          {protocolo.videos && protocolo.videos.length > 0 && (
-            <div className="mb-6">
-              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
-                Videos
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {protocolo.videos.map((v, i) => (
-                  <VideoEmbed key={i} etiqueta={v.etiqueta} url={v.url} />
-                ))}
+          {protocolo.videos && protocolo.videos.length > 0 && (() => {
+            const videosVisibles =
+              protocolo.modalidad === "RM"
+                ? protocolo.videos.filter(
+                    (v) =>
+                      !v.mostrarEn ||
+                      v.mostrarEn === "ambos" ||
+                      (conContraste && v.mostrarEn === "con") ||
+                      (!conContraste && v.mostrarEn === "sin")
+                  )
+                : protocolo.videos;
+
+            if (videosVisibles.length === 0) return null;
+
+            return (
+              <div className="mb-6">
+                <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                  Videos
+                </p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {videosVisibles.map((v, i) => (
+                    <VideoEmbed key={i} etiqueta={v.etiqueta} url={v.url} />
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {protocolo.postProceso && (
             <div className="mb-6 rounded border border-rm-dim bg-rm-dim/10 p-4">

@@ -71,6 +71,8 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [pasosConContraste, setPasosConContraste] = useState<PasoProtocolo[]>(
     inicial?.pasosConContraste ?? []
   );
+  const [arrastrandoPaso, setArrastrandoPaso] = useState<number | null>(null);
+  const [arrastrandoPasoContraste, setArrastrandoPasoContraste] = useState<number | null>(null);
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -98,6 +100,16 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       if (j < 0 || j >= prev.length) return prev;
       const copia = [...prev];
       [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  }
+
+  function reordenarPasos(desde: number, hasta: number) {
+    if (desde === hasta) return;
+    setPasos((prev) => {
+      const copia = [...prev];
+      const [item] = copia.splice(desde, 1);
+      copia.splice(hasta, 0, item);
       return copia;
     });
   }
@@ -149,6 +161,16 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       if (j < 0 || j >= prev.length) return prev;
       const copia = [...prev];
       [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  }
+
+  function reordenarPasosContraste(desde: number, hasta: number) {
+    if (desde === hasta) return;
+    setPasosConContraste((prev) => {
+      const copia = [...prev];
+      const [item] = copia.splice(desde, 1);
+      copia.splice(hasta, 0, item);
       return copia;
     });
   }
@@ -388,8 +410,27 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         </div>
         <div className="flex flex-col gap-3">
           {pasos.map((paso, i) => (
-            <div key={i} className="flex gap-3 rounded border border-border bg-surface p-3">
+            <div
+              key={i}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (arrastrandoPaso !== null) reordenarPasos(arrastrandoPaso, i);
+                setArrastrandoPaso(null);
+              }}
+              className={`flex gap-3 rounded border bg-surface p-3 transition-colors ${
+                arrastrandoPaso === i ? "border-rm-dim opacity-50" : "border-border"
+              }`}
+            >
               <div className="mt-1 flex flex-col items-center gap-1">
+                <span
+                  draggable
+                  onDragStart={() => setArrastrandoPaso(i)}
+                  onDragEnd={() => setArrastrandoPaso(null)}
+                  className="cursor-grab select-none text-ink-faint hover:text-ink active:cursor-grabbing"
+                  title="Arrastrar para reordenar"
+                >
+                  ⠿
+                </span>
                 <span className="font-mono text-xs text-ink-faint">
                   {String(i + 1).padStart(2, "0")}
                 </span>
@@ -516,8 +557,28 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           </p>
           <div className="flex flex-col gap-3">
             {pasosConContraste.map((paso, i) => (
-              <div key={i} className="flex gap-3 rounded border border-border bg-surface p-3">
+              <div
+                key={i}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (arrastrandoPasoContraste !== null)
+                    reordenarPasosContraste(arrastrandoPasoContraste, i);
+                  setArrastrandoPasoContraste(null);
+                }}
+                className={`flex gap-3 rounded border bg-surface p-3 transition-colors ${
+                  arrastrandoPasoContraste === i ? "border-tc-dim opacity-50" : "border-border"
+                }`}
+              >
                 <div className="mt-1 flex flex-col items-center gap-1">
+                  <span
+                    draggable
+                    onDragStart={() => setArrastrandoPasoContraste(i)}
+                    onDragEnd={() => setArrastrandoPasoContraste(null)}
+                    className="cursor-grab select-none text-ink-faint hover:text-ink active:cursor-grabbing"
+                    title="Arrastrar para reordenar"
+                  >
+                    ⠿
+                  </span>
                   <span className="font-mono text-xs text-ink-faint">
                     {String(i + 1).padStart(2, "0")}
                   </span>
@@ -738,7 +799,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         </div>
         <div className="flex flex-col gap-2">
           {videos.map((v, i) => (
-            <div key={i} className="flex gap-2">
+            <div key={i} className="flex flex-wrap items-center gap-2">
               <input
                 value={v.etiqueta}
                 onChange={(e) => actualizarVideo(i, "etiqueta", e.target.value)}
@@ -749,8 +810,19 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                 value={v.url}
                 onChange={(e) => actualizarVideo(i, "url", e.target.value)}
                 placeholder="https://youtube.com/... o https://drive.google.com/..."
-                className="flex-1 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                className="min-w-[14rem] flex-1 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
               />
+              {usaContraste && (
+                <select
+                  value={v.mostrarEn ?? "ambos"}
+                  onChange={(e) => actualizarVideo(i, "mostrarEn", e.target.value)}
+                  className="rounded border border-border bg-surface px-2 py-1.5 text-xs text-ink outline-none focus:border-rm"
+                >
+                  <option value="ambos">Sin y con contraste</option>
+                  <option value="sin">Solo sin contraste</option>
+                  <option value="con">Solo con contraste</option>
+                </select>
+              )}
               <button
                 type="button"
                 onClick={() => quitarVideo(i)}
