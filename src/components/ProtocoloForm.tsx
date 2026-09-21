@@ -68,15 +68,8 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [pasos, setPasos] = useState<PasoProtocolo[]>(
     inicial?.pasos?.length ? inicial.pasos : [{ titulo: "", detalle: "" }]
   );
-  const [pasosConContraste, setPasosConContraste] = useState<PasoProtocolo[]>(
-    inicial?.pasosConContraste ?? []
-  );
   const [arrastrandoPaso, setArrastrandoPaso] = useState<number | null>(null);
-  const [arrastrandoPasoContraste, setArrastrandoPasoContraste] = useState<number | null>(null);
   const [opcionalAbiertoPaso, setOpcionalAbiertoPaso] = useState<Set<number>>(new Set());
-  const [opcionalAbiertoPasoContraste, setOpcionalAbiertoPasoContraste] = useState<Set<number>>(
-    new Set()
-  );
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -136,75 +129,10 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasos((prev) => prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p)));
   }
 
-  function moverAConContraste(i: number) {
-    const paso = pasos[i];
-    if (!paso) return;
-    setPasosConContraste((cc) => [...cc, paso]);
-  }
-
-  function actualizarPasoContraste(i: number, campo: keyof PasoProtocolo, valor: string) {
-    setPasosConContraste((prev) =>
-      prev.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p))
+  function alternarPostContraste(i: number) {
+    setPasos((prev) =>
+      prev.map((p, idx) => (idx === i ? { ...p, postContraste: !p.postContraste } : p))
     );
-  }
-
-  function agregarPasoContraste() {
-    setPasosConContraste((prev) => [...prev, { titulo: "", detalle: "" }]);
-  }
-
-  function agregarMarcadorInyeccion() {
-    setPasosConContraste((prev) => [
-      ...prev,
-      { titulo: "💉 Acá se inyecta el contraste", detalle: "" },
-    ]);
-  }
-
-  function moverPasoContraste(i: number, direccion: -1 | 1) {
-    setPasosConContraste((prev) => {
-      const j = i + direccion;
-      if (j < 0 || j >= prev.length) return prev;
-      const copia = [...prev];
-      [copia[i], copia[j]] = [copia[j], copia[i]];
-      return copia;
-    });
-  }
-
-  function reordenarPasosContraste(desde: number, hasta: number) {
-    if (desde === hasta) return;
-    setPasosConContraste((prev) => {
-      const copia = [...prev];
-      const [item] = copia.splice(desde, 1);
-      copia.splice(hasta, 0, item);
-      return copia;
-    });
-  }
-
-  function quitarPasoContraste(i: number) {
-    setPasosConContraste((prev) => prev.filter((_, idx) => idx !== i));
-  }
-
-  async function agregarImagenAPasoContraste(i: number, file: File) {
-    setError(null);
-    try {
-      const dataUrl = await comprimirImagen(file);
-      setPasosConContraste((prev) =>
-        prev.map((p, idx) => (idx === i ? { ...p, imagen: dataUrl } : p))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo procesar la imagen.");
-    }
-  }
-
-  function quitarImagenDePasoContraste(i: number) {
-    setPasosConContraste((prev) =>
-      prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p))
-    );
-  }
-
-  function moverATecnicaBase(i: number) {
-    const paso = pasosConContraste[i];
-    if (!paso) return;
-    setPasos((base) => [...base, paso]);
   }
 
   function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
@@ -278,9 +206,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       usaContraste,
       detalleContraste: usaContraste ? detalleContraste.trim() || null : null,
       pasos: pasos.filter((p) => p.titulo.trim().length > 0),
-      pasosConContraste: usaContraste
-        ? pasosConContraste.filter((p) => p.titulo.trim().length > 0)
-        : [],
+      pasosConContraste: [],
       reconstrucciones: reconstrucciones.filter((r) => r.titulo.trim().length > 0),
       postProceso: postProceso.trim() || null,
       notas: notas.trim() || null,
@@ -496,6 +422,17 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                   />
                 )}
+                {usaContraste && (
+                  <label className="flex items-center gap-1.5 text-xs text-tc">
+                    <input
+                      type="checkbox"
+                      checked={!!paso.postContraste}
+                      onChange={() => alternarPostContraste(i)}
+                      className="h-3.5 w-3.5 accent-tc"
+                    />
+                    Es post-contraste (solo aparece al elegir &quot;Con contraste&quot;)
+                  </label>
+                )}
                 {paso.imagen ? (
                   <div className="flex items-center gap-2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -529,15 +466,6 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                 )}
               </div>
               <div className="flex flex-col items-end gap-1 self-start">
-                {usaContraste && (
-                  <button
-                    type="button"
-                    onClick={() => moverAConContraste(i)}
-                    className="text-xs text-tc hover:underline"
-                  >
-                    + Copiar a con contraste
-                  </button>
-                )}
                 {pasos.length > 1 && (
                   <button
                     type="button"
@@ -552,181 +480,6 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           ))}
         </div>
       </div>
-
-      {usaContraste && (
-        <div className="rounded border border-tc-dim bg-tc-dim/5 p-4">
-          <div className="mb-2 flex items-center justify-between">
-            <label className="text-xs font-medium text-tc">
-              Secuencias adicionales con contraste
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={agregarMarcadorInyeccion}
-                className="text-xs text-tc hover:underline"
-              >
-                💉 + Marcador de inyección
-              </button>
-              <button
-                type="button"
-                onClick={agregarPasoContraste}
-                className="text-xs text-rm hover:underline"
-              >
-                + Agregar secuencia
-              </button>
-            </div>
-          </div>
-          <p className="mb-3 text-[11px] text-ink-faint">
-            Esta es la lista COMPLETA que ve el técnico al elegir &quot;Con contraste&quot; —
-            no se suma a la de arriba, la reemplaza. Si algo de la lista base también se
-            hace con contraste, agregalo acá también (usá &quot;+ Copiar a con contraste&quot; en esa
-            fila para moverlo o copiarlo). Con &quot;💉 + Marcador de inyección&quot; podés marcar
-            en qué punto de la lista se inyecta el contraste, y despué reordenarlo con las
-            flechas. Dejalo vacío si este estudio no tiene una lista separada.
-          </p>
-          <div className="flex flex-col gap-3">
-            {pasosConContraste.map((paso, i) => (
-              <div
-                key={i}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => {
-                  if (arrastrandoPasoContraste !== null)
-                    reordenarPasosContraste(arrastrandoPasoContraste, i);
-                  setArrastrandoPasoContraste(null);
-                }}
-                className={`flex gap-3 rounded border bg-surface p-3 transition-colors ${
-                  arrastrandoPasoContraste === i ? "border-tc-dim opacity-50" : "border-border"
-                }`}
-              >
-                <div className="mt-1 flex flex-col items-center gap-1">
-                  <span
-                    draggable
-                    onDragStart={() => setArrastrandoPasoContraste(i)}
-                    onDragEnd={() => setArrastrandoPasoContraste(null)}
-                    className="cursor-grab select-none text-ink-faint hover:text-ink active:cursor-grabbing"
-                    title="Arrastrar para reordenar"
-                  >
-                    ⠿
-                  </span>
-                  <span className="font-mono text-xs text-ink-faint">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => moverPasoContraste(i, -1)}
-                    disabled={i === 0}
-                    className="text-ink-faint hover:text-ink disabled:opacity-20"
-                    aria-label="Subir"
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => moverPasoContraste(i, 1)}
-                    disabled={i === pasosConContraste.length - 1}
-                    className="text-ink-faint hover:text-ink disabled:opacity-20"
-                    aria-label="Bajar"
-                  >
-                    ▼
-                  </button>
-                </div>
-                <div className="flex-1 space-y-2">
-                  <input
-                    value={paso.titulo}
-                    onChange={(e) => actualizarPasoContraste(i, "titulo", e.target.value)}
-                    placeholder="Título de la secuencia (ej: Sag T1 C/C)"
-                    className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
-                  />
-                  <textarea
-                    value={paso.detalle}
-                    onChange={(e) => actualizarPasoContraste(i, "detalle", e.target.value)}
-                    placeholder="Cómo se programa (opcional)"
-                    rows={2}
-                    className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
-                  />
-                  <label className="flex items-center gap-1.5 text-xs text-ink-dim">
-                    <input
-                      type="checkbox"
-                      checked={
-                        opcionalAbiertoPasoContraste.has(i) || !!paso.condicionOpcional
-                      }
-                      onChange={(e) => {
-                        setOpcionalAbiertoPasoContraste((prev) => {
-                          const nuevo = new Set(prev);
-                          if (e.target.checked) nuevo.add(i);
-                          else nuevo.delete(i);
-                          return nuevo;
-                        });
-                        if (!e.target.checked)
-                          actualizarPasoContraste(i, "condicionOpcional", "");
-                      }}
-                      className="h-3.5 w-3.5 accent-rm"
-                    />
-                    Es opcional (solo para cierta indicación)
-                  </label>
-                  {(opcionalAbiertoPasoContraste.has(i) || !!paso.condicionOpcional) && (
-                    <input
-                      value={paso.condicionOpcional ?? ""}
-                      onChange={(e) =>
-                        actualizarPasoContraste(i, "condicionOpcional", e.target.value)
-                      }
-                      placeholder="¿Cuándo se hace? (ej: Sospecha de metástasis o tumor)"
-                      className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
-                    />
-                  )}
-                  {paso.imagen ? (
-                    <div className="flex items-center gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={paso.imagen}
-                        alt=""
-                        className="h-16 w-16 rounded border border-border object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => quitarImagenDePasoContraste(i)}
-                        className="text-xs text-ink-faint hover:text-alert"
-                      >
-                        Quitar imagen
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-rm hover:underline">
-                      + Imagen de cómo se programa
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) agregarImagenAPasoContraste(i, file);
-                          e.target.value = "";
-                        }}
-                      />
-                    </label>
-                  )}
-                </div>
-                <div className="flex flex-col items-end gap-1 self-start">
-                  <button
-                    type="button"
-                    onClick={() => moverATecnicaBase(i)}
-                    className="text-xs text-rm hover:underline"
-                  >
-                    + Copiar a técnica base
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => quitarPasoContraste(i)}
-                    className="text-xs text-ink-faint hover:text-alert"
-                  >
-                    Quitar
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {modalidad === "TC" && (
         <div>

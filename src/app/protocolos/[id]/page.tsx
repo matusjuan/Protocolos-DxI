@@ -147,10 +147,16 @@ function DetalleProtocolo() {
           )}
 
           {protocolo.pasos?.length > 0 && (() => {
-            const itemsFinal =
-              conContraste && protocolo.pasosConContraste?.length
-                ? protocolo.pasosConContraste
-                : protocolo.pasos;
+            const primerPostIdx = protocolo.pasos.findIndex((p) => p.postContraste);
+            const itemsFinal = conContraste
+              ? primerPostIdx === -1
+                ? protocolo.pasos
+                : [
+                    ...protocolo.pasos.slice(0, primerPostIdx),
+                    { titulo: "💉 Acá se inyecta el contraste", detalle: "" },
+                    ...protocolo.pasos.slice(primerPostIdx),
+                  ]
+              : protocolo.pasos.filter((p) => !p.postContraste);
 
             const condicionesDisponibles = itemsFinal
               .map((p) => p.condicionOpcional)
@@ -201,13 +207,6 @@ function DetalleProtocolo() {
                 <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                   Técnica
                 </p>
-
-                {conContraste && !protocolo.pasosConContraste?.length && (
-                  <p className="mb-2 text-xs text-ink-faint">
-                    Todavía no hay una lista de secuencias con contraste cargada para este
-                    estudio — se muestra la misma técnica de base.
-                  </p>
-                )}
 
                 {condicionesDisponibles.length > 0 && (
                   <div className="mb-3 rounded border border-border bg-surface p-3">

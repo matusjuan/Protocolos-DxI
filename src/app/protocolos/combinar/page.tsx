@@ -92,11 +92,10 @@ function ArmarCombinado() {
 
   const itemsFinal: ItemMezcla[] = useMemo(() => {
     const partes = seleccionados.map((p) => {
-      const idx = p.pasos.findIndex((x) => x.titulo.includes("inyecta el contraste"));
-      const pre = idx === -1 ? p.pasos : p.pasos.slice(0, idx);
-      const post = idx === -1 ? [] : p.pasos.slice(idx + 1);
+      const pre = p.pasos.filter((x) => !x.postContraste);
+      const post = p.pasos.filter((x) => x.postContraste);
       const on = !!contraste[p.id];
-      return { p, pre, post, postCC: p.pasosConContraste ?? [], on };
+      return { p, pre, post, on };
     });
 
     const conOrigen = (lista: PasoProtocolo[], origen: string): ItemMezcla[] =>
@@ -112,7 +111,7 @@ function ArmarCombinado() {
       ? [...partes]
           .reverse()
           .filter((x) => x.on)
-          .flatMap((x) => conOrigen([...x.post, ...x.postCC], x.p.patologia))
+          .flatMap((x) => conOrigen(x.post, x.p.patologia))
       : [];
 
     return algunaOn

@@ -7,6 +7,7 @@ export interface PasoProtocolo {
   detalle: string;
   imagen?: string;
   condicionOpcional?: string;
+  postContraste?: boolean;
 }
 
 export interface ValorParametro {
