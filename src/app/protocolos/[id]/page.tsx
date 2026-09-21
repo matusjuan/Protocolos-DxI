@@ -136,17 +136,6 @@ function DetalleProtocolo() {
             <TablaParametros grupos={protocolo.parametrosPorEdad} />
           )}
 
-          {protocolo.usaContraste && (
-            <div className="mb-6 rounded border border-tc-dim bg-tc-dim/10 p-4">
-              <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
-                Contraste
-              </p>
-              <p className="text-sm text-ink">
-                {protocolo.detalleContraste || "Este estudio requiere contraste."}
-              </p>
-            </div>
-          )}
-
           {protocolo.pasos?.length > 0 && (
             <div className="mb-6">
               {protocolo.modalidad === "RM" && (
@@ -174,20 +163,31 @@ function DetalleProtocolo() {
                 </div>
               )}
 
+              {protocolo.usaContraste && (protocolo.modalidad !== "RM" || conContraste) && (
+                <div className="mb-4 rounded border border-tc-dim bg-tc-dim/10 p-4">
+                  <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
+                    Contraste
+                  </p>
+                  <p className="text-sm text-ink">
+                    {protocolo.detalleContraste || "Este estudio requiere contraste."}
+                  </p>
+                </div>
+              )}
+
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Técnica
               </p>
 
               {conContraste && !protocolo.pasosConContraste?.length && (
                 <p className="mb-2 text-xs text-ink-faint">
-                  Todavía no hay secuencias adicionales cargadas para este estudio con
-                  contraste — se muestra la misma técnica de base.
+                  Todavía no hay una lista de secuencias con contraste cargada para este
+                  estudio — se muestra la misma técnica de base.
                 </p>
               )}
 
               <ol className="flex flex-col gap-2">
-                {(conContraste
-                  ? [...protocolo.pasos, ...(protocolo.pasosConContraste ?? [])]
+                {(conContraste && protocolo.pasosConContraste?.length
+                  ? protocolo.pasosConContraste
                   : protocolo.pasos
                 ).map((paso, i) => {
                   const abierto = pasosAbiertos.has(i);

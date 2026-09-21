@@ -111,12 +111,9 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   }
 
   function moverAConContraste(i: number) {
-    setPasos((prev) => {
-      const paso = prev[i];
-      if (!paso) return prev;
-      setPasosConContraste((cc) => [...cc, paso]);
-      return prev.filter((_, idx) => idx !== i);
-    });
+    const paso = pasos[i];
+    if (!paso) return;
+    setPasosConContraste((cc) => [...cc, paso]);
   }
 
   function actualizarPasoContraste(i: number, campo: keyof PasoProtocolo, valor: string) {
@@ -152,12 +149,9 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   }
 
   function moverATecnicaBase(i: number) {
-    setPasosConContraste((prev) => {
-      const paso = prev[i];
-      if (!paso) return prev;
-      setPasos((base) => [...base, paso]);
-      return prev.filter((_, idx) => idx !== i);
-    });
+    const paso = pasosConContraste[i];
+    if (!paso) return;
+    setPasos((base) => [...base, paso]);
   }
 
   function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
@@ -424,7 +418,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     onClick={() => moverAConContraste(i)}
                     className="text-xs text-tc hover:underline"
                   >
-                    → Con contraste
+                    + Copiar a con contraste
                   </button>
                 )}
                 {pasos.length > 1 && (
@@ -457,8 +451,11 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
             </button>
           </div>
           <p className="mb-3 text-[11px] text-ink-faint">
-            Estas se suman a las de arriba cuando el técnico elige &quot;Con contraste&quot; en
-            la ficha. Dejalo vacío si este estudio no tiene una lista separada.
+            Esta es la lista COMPLETA que ve el técnico al elegir &quot;Con contraste&quot; —
+            no se suma a la de arriba, la reemplaza. Si algo de la lista base también se
+            hace con contraste, agregalo acá también (usá &quot;+ Copiar a con contraste&quot; en esa
+            fila para moverlo o copiarlo). Dejalo vacío si este estudio no tiene una lista
+            separada.
           </p>
           <div className="flex flex-col gap-3">
             {pasosConContraste.map((paso, i) => (
@@ -518,7 +515,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     onClick={() => moverATecnicaBase(i)}
                     className="text-xs text-rm hover:underline"
                   >
-                    ← Técnica base
+                    + Copiar a técnica base
                   </button>
                   <button
                     type="button"
