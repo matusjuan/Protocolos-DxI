@@ -190,6 +190,20 @@ function DetalleProtocolo() {
                   ? protocolo.pasosConContraste
                   : protocolo.pasos
                 ).map((paso, i) => {
+                  const esMarcadorInyeccion = paso.titulo.includes("inyecta el contraste");
+
+                  if (esMarcadorInyeccion) {
+                    return (
+                      <li key={i} className="my-1 flex items-center gap-3 py-1">
+                        <span className="h-px flex-1 bg-tc-dim" />
+                        <span className="whitespace-nowrap text-xs font-semibold text-tc">
+                          {paso.titulo}
+                        </span>
+                        <span className="h-px flex-1 bg-tc-dim" />
+                      </li>
+                    );
+                  }
+
                   const abierto = pasosAbiertos.has(i);
                   const tieneContenido =
                     (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;

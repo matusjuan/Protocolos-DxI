@@ -92,6 +92,16 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasos((prev) => [...prev, { titulo: "", detalle: "" }]);
   }
 
+  function moverPaso(i: number, direccion: -1 | 1) {
+    setPasos((prev) => {
+      const j = i + direccion;
+      if (j < 0 || j >= prev.length) return prev;
+      const copia = [...prev];
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
+  }
+
   function quitarPaso(i: number) {
     setPasos((prev) => prev.filter((_, idx) => idx !== i));
   }
@@ -124,6 +134,23 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function agregarPasoContraste() {
     setPasosConContraste((prev) => [...prev, { titulo: "", detalle: "" }]);
+  }
+
+  function agregarMarcadorInyeccion() {
+    setPasosConContraste((prev) => [
+      ...prev,
+      { titulo: "💉 Acá se inyecta el contraste", detalle: "" },
+    ]);
+  }
+
+  function moverPasoContraste(i: number, direccion: -1 | 1) {
+    setPasosConContraste((prev) => {
+      const j = i + direccion;
+      if (j < 0 || j >= prev.length) return prev;
+      const copia = [...prev];
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+      return copia;
+    });
   }
 
   function quitarPasoContraste(i: number) {
@@ -362,9 +389,29 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         <div className="flex flex-col gap-3">
           {pasos.map((paso, i) => (
             <div key={i} className="flex gap-3 rounded border border-border bg-surface p-3">
-              <span className="mt-2 font-mono text-xs text-ink-faint">
-                {String(i + 1).padStart(2, "0")}
-              </span>
+              <div className="mt-1 flex flex-col items-center gap-1">
+                <span className="font-mono text-xs text-ink-faint">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => moverPaso(i, -1)}
+                  disabled={i === 0}
+                  className="text-ink-faint hover:text-ink disabled:opacity-20"
+                  aria-label="Subir"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moverPaso(i, 1)}
+                  disabled={i === pasos.length - 1}
+                  className="text-ink-faint hover:text-ink disabled:opacity-20"
+                  aria-label="Bajar"
+                >
+                  ▼
+                </button>
+              </div>
               <div className="flex-1 space-y-2">
                 <input
                   value={paso.titulo}
@@ -442,27 +489,57 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
             <label className="text-xs font-medium text-tc">
               Secuencias adicionales con contraste
             </label>
-            <button
-              type="button"
-              onClick={agregarPasoContraste}
-              className="text-xs text-rm hover:underline"
-            >
-              + Agregar secuencia
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={agregarMarcadorInyeccion}
+                className="text-xs text-tc hover:underline"
+              >
+                💉 + Marcador de inyección
+              </button>
+              <button
+                type="button"
+                onClick={agregarPasoContraste}
+                className="text-xs text-rm hover:underline"
+              >
+                + Agregar secuencia
+              </button>
+            </div>
           </div>
           <p className="mb-3 text-[11px] text-ink-faint">
             Esta es la lista COMPLETA que ve el técnico al elegir &quot;Con contraste&quot; —
             no se suma a la de arriba, la reemplaza. Si algo de la lista base también se
             hace con contraste, agregalo acá también (usá &quot;+ Copiar a con contraste&quot; en esa
-            fila para moverlo o copiarlo). Dejalo vacío si este estudio no tiene una lista
-            separada.
+            fila para moverlo o copiarlo). Con &quot;💉 + Marcador de inyección&quot; podés marcar
+            en qué punto de la lista se inyecta el contraste, y despué reordenarlo con las
+            flechas. Dejalo vacío si este estudio no tiene una lista separada.
           </p>
           <div className="flex flex-col gap-3">
             {pasosConContraste.map((paso, i) => (
               <div key={i} className="flex gap-3 rounded border border-border bg-surface p-3">
-                <span className="mt-2 font-mono text-xs text-ink-faint">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                <div className="mt-1 flex flex-col items-center gap-1">
+                  <span className="font-mono text-xs text-ink-faint">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => moverPasoContraste(i, -1)}
+                    disabled={i === 0}
+                    className="text-ink-faint hover:text-ink disabled:opacity-20"
+                    aria-label="Subir"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moverPasoContraste(i, 1)}
+                    disabled={i === pasosConContraste.length - 1}
+                    className="text-ink-faint hover:text-ink disabled:opacity-20"
+                    aria-label="Bajar"
+                  >
+                    ▼
+                  </button>
+                </div>
                 <div className="flex-1 space-y-2">
                   <input
                     value={paso.titulo}
