@@ -110,6 +110,15 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasos((prev) => prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p)));
   }
 
+  function moverAConContraste(i: number) {
+    setPasos((prev) => {
+      const paso = prev[i];
+      if (!paso) return prev;
+      setPasosConContraste((cc) => [...cc, paso]);
+      return prev.filter((_, idx) => idx !== i);
+    });
+  }
+
   function actualizarPasoContraste(i: number, campo: keyof PasoProtocolo, valor: string) {
     setPasosConContraste((prev) =>
       prev.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p))
@@ -140,6 +149,15 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasosConContraste((prev) =>
       prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p))
     );
+  }
+
+  function moverATecnicaBase(i: number) {
+    setPasosConContraste((prev) => {
+      const paso = prev[i];
+      if (!paso) return prev;
+      setPasos((base) => [...base, paso]);
+      return prev.filter((_, idx) => idx !== i);
+    });
   }
 
   function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
@@ -399,15 +417,26 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                   </label>
                 )}
               </div>
-              {pasos.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => quitarPaso(i)}
-                  className="self-start text-xs text-ink-faint hover:text-alert"
-                >
-                  Quitar
-                </button>
-              )}
+              <div className="flex flex-col items-end gap-1 self-start">
+                {usaContraste && (
+                  <button
+                    type="button"
+                    onClick={() => moverAConContraste(i)}
+                    className="text-xs text-tc hover:underline"
+                  >
+                    → Con contraste
+                  </button>
+                )}
+                {pasos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => quitarPaso(i)}
+                    className="text-xs text-ink-faint hover:text-alert"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -483,13 +512,22 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     </label>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => quitarPasoContraste(i)}
-                  className="self-start text-xs text-ink-faint hover:text-alert"
-                >
-                  Quitar
-                </button>
+                <div className="flex flex-col items-end gap-1 self-start">
+                  <button
+                    type="button"
+                    onClick={() => moverATecnicaBase(i)}
+                    className="text-xs text-rm hover:underline"
+                  >
+                    ← Técnica base
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => quitarPasoContraste(i)}
+                    className="text-xs text-ink-faint hover:text-alert"
+                  >
+                    Quitar
+                  </button>
+                </div>
               </div>
             ))}
           </div>
