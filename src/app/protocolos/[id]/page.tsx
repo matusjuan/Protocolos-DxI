@@ -22,6 +22,18 @@ function DetalleProtocolo() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conContraste, setConContraste] = useState(false);
+  const [indicacionesSeleccionadas, setIndicacionesSeleccionadas] = useState<Set<number>>(
+    new Set()
+  );
+
+  function alternarIndicacion(i: number) {
+    setIndicacionesSeleccionadas((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(i)) nuevo.delete(i);
+      else nuevo.add(i);
+      return nuevo;
+    });
+  }
   const [pasosAbiertos, setPasosAbiertos] = useState<Set<number>>(new Set());
 
   function alternarPaso(i: number) {
@@ -185,11 +197,38 @@ function DetalleProtocolo() {
                 </p>
               )}
 
+              {protocolo.indicacionesEspeciales && protocolo.indicacionesEspeciales.length > 0 && (
+                <div className="mb-3 rounded border border-border bg-surface p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-dim">
+                    ¿Alguna indicación especial? (tildá las que correspondan)
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {protocolo.indicacionesEspeciales.map((ie, i) => (
+                      <label key={i} className="flex items-center gap-2 text-sm text-ink">
+                        <input
+                          type="checkbox"
+                          checked={indicacionesSeleccionadas.has(i)}
+                          onChange={() => alternarIndicacion(i)}
+                          className="h-4 w-4 accent-rm"
+                        />
+                        {ie.nombre}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <ol className="flex flex-col gap-2">
-                {(conContraste && protocolo.pasosConContraste?.length
-                  ? protocolo.pasosConContraste
-                  : protocolo.pasos
-                ).map((paso, i) => {
+                {(() => {
+                  const base =
+                    conContraste && protocolo.pasosConContraste?.length
+                      ? protocolo.pasosConContraste
+                      : protocolo.pasos;
+                  const extras = (protocolo.indicacionesEspeciales ?? []).flatMap((ie, i) =>
+                    indicacionesSeleccionadas.has(i) ? ie.pasos : []
+                  );
+                  return [...base, ...extras];
+                })().map((paso, i) => {
                   const esMarcadorInyeccion = paso.titulo.includes("inyecta el contraste");
 
                   if (esMarcadorInyeccion) {

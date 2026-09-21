@@ -15,6 +15,7 @@ import { normalizarImagen } from "@/lib/imagenes";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type {
   ImagenProtocolo,
+  IndicacionEspecial,
   Modalidad,
   PasoProtocolo,
   Protocolo,
@@ -76,6 +77,55 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
+  const [indicaciones, setIndicaciones] = useState<IndicacionEspecial[]>(
+    inicial?.indicacionesEspeciales ?? []
+  );
+
+  function agregarIndicacion() {
+    setIndicaciones((prev) => [...prev, { nombre: "", pasos: [{ titulo: "", detalle: "" }] }]);
+  }
+
+  function quitarIndicacion(i: number) {
+    setIndicaciones((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function actualizarNombreIndicacion(i: number, nombre: string) {
+    setIndicaciones((prev) => prev.map((ie, idx) => (idx === i ? { ...ie, nombre } : ie)));
+  }
+
+  function agregarPasoIndicacion(i: number) {
+    setIndicaciones((prev) =>
+      prev.map((ie, idx) =>
+        idx === i ? { ...ie, pasos: [...ie.pasos, { titulo: "", detalle: "" }] } : ie
+      )
+    );
+  }
+
+  function actualizarPasoIndicacion(
+    i: number,
+    j: number,
+    campo: keyof PasoProtocolo,
+    valor: string
+  ) {
+    setIndicaciones((prev) =>
+      prev.map((ie, idx) =>
+        idx === i
+          ? {
+              ...ie,
+              pasos: ie.pasos.map((p, pIdx) => (pIdx === j ? { ...p, [campo]: valor } : p)),
+            }
+          : ie
+      )
+    );
+  }
+
+  function quitarPasoIndicacion(i: number, j: number) {
+    setIndicaciones((prev) =>
+      prev.map((ie, idx) =>
+        idx === i ? { ...ie, pasos: ie.pasos.filter((_, pIdx) => pIdx !== j) } : ie
+      )
+    );
+  }
   const [notas, setNotas] = useState(inicial?.notas ?? "");
   const [postProceso, setPostProceso] = useState(inicial?.postProceso ?? "");
   const [videos, setVideos] = useState<VideoProtocolo[]>(inicial?.videos ?? []);
@@ -278,6 +328,12 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         ? pasosConContraste.filter((p) => p.titulo.trim().length > 0)
         : [],
       reconstrucciones: reconstrucciones.filter((r) => r.titulo.trim().length > 0),
+      indicacionesEspeciales: indicaciones
+        .filter((ie) => ie.nombre.trim().length > 0)
+        .map((ie) => ({
+          nombre: ie.nombre.trim(),
+          pasos: ie.pasos.filter((p) => p.titulo.trim().length > 0),
+        })),
       postProceso: postProceso.trim() || null,
       notas: notas.trim() || null,
       imagenes,
@@ -668,6 +724,92 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           </div>
         </div>
       )}
+
+      <div className="rounded border border-rm-dim bg-rm-dim/5 p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <label className="text-xs font-medium text-rm">
+            Indicaciones especiales (secuencias extra según patología)
+          </label>
+          <button
+            type="button"
+            onClick={agregarIndicacion}
+            className="text-xs text-rm hover:underline"
+          >
+            + Agregar indicación
+          </button>
+        </div>
+        <p className="mb-3 text-[11px] text-ink-faint">
+          Para casos como &quot;Rodilla&quot;: la técnica de arriba es la normal, y acá podés
+          agregar indicaciones puntuales (ej. &quot;Sospecha de lesión de LCA&quot;) con sus
+          propias secuencias extra. El técnico va a poder tildar una o varias, y se suman a
+          la técnica de siempre.
+        </p>
+        <div className="flex flex-col gap-3">
+          {indicaciones.map((ie, i) => (
+            <div key={i} className="rounded border border-border bg-surface p-3">
+              <div className="mb-2 flex items-center gap-2">
+                <input
+                  value={ie.nombre}
+                  onChange={(e) => actualizarNombreIndicacion(i, e.target.value)}
+                  placeholder="Nombre de la indicación (ej: Sospecha de lesión de LCA)"
+                  className="flex-1 rounded border border-border bg-bg px-3 py-1.5 text-sm font-medium text-ink outline-none focus:border-rm"
+                />
+                <button
+                  type="button"
+                  onClick={() => quitarIndicacion(i)}
+                  className="text-xs text-ink-faint hover:text-alert"
+                >
+                  Quitar indicación
+                </button>
+              </div>
+              <div className="flex flex-col gap-2 pl-2">
+                {ie.pasos.map((paso, j) => (
+                  <div key={j} className="flex gap-2 rounded border border-border bg-bg p-2">
+                    <div className="flex-1 space-y-1.5">
+                      <input
+                        value={paso.titulo}
+                        onChange={(e) =>
+                          actualizarPasoIndicacion(i, j, "titulo", e.target.value)
+                        }
+                        placeholder="Secuencia extra (ej: Sag DP FS oblicua LCA)"
+                        className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                      />
+                      <textarea
+                        value={paso.detalle}
+                        onChange={(e) =>
+                          actualizarPasoIndicacion(i, j, "detalle", e.target.value)
+                        }
+                        placeholder="Cómo se programa (opcional)"
+                        rows={2}
+                        className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => quitarPasoIndicacion(i, j)}
+                      className="self-start text-xs text-ink-faint hover:text-alert"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => agregarPasoIndicacion(i)}
+                  className="self-start text-xs text-rm hover:underline"
+                >
+                  + Agregar secuencia a esta indicación
+                </button>
+              </div>
+            </div>
+          ))}
+          {indicaciones.length === 0 && (
+            <p className="text-xs text-ink-faint">
+              Todavía no agregaste indicaciones especiales para este estudio.
+            </p>
+          )}
+        </div>
+      </div>
 
       {modalidad === "TC" && (
         <div>
