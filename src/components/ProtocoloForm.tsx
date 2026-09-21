@@ -96,6 +96,20 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasos((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  async function agregarImagenAPaso(i: number, file: File) {
+    setError(null);
+    try {
+      const dataUrl = await comprimirImagen(file);
+      setPasos((prev) => prev.map((p, idx) => (idx === i ? { ...p, imagen: dataUrl } : p)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo procesar la imagen.");
+    }
+  }
+
+  function quitarImagenDePaso(i: number) {
+    setPasos((prev) => prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p)));
+  }
+
   function actualizarPasoContraste(i: number, campo: keyof PasoProtocolo, valor: string) {
     setPasosConContraste((prev) =>
       prev.map((p, idx) => (idx === i ? { ...p, [campo]: valor } : p))
@@ -108,6 +122,24 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function quitarPasoContraste(i: number) {
     setPasosConContraste((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  async function agregarImagenAPasoContraste(i: number, file: File) {
+    setError(null);
+    try {
+      const dataUrl = await comprimirImagen(file);
+      setPasosConContraste((prev) =>
+        prev.map((p, idx) => (idx === i ? { ...p, imagen: dataUrl } : p))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo procesar la imagen.");
+    }
+  }
+
+  function quitarImagenDePasoContraste(i: number) {
+    setPasosConContraste((prev) =>
+      prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p))
+    );
   }
 
   function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
@@ -331,10 +363,41 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                 <textarea
                   value={paso.detalle}
                   onChange={(e) => actualizarPaso(i, "detalle", e.target.value)}
-                  placeholder="Detalle / parámetros (grosor de corte, FOV, TR/TE, etc.)"
+                  placeholder="Cómo se programa esta secuencia (plano, FOV, espesor, TR/TE, matriz, etc.)"
                   rows={2}
                   className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                 />
+                {paso.imagen ? (
+                  <div className="flex items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={paso.imagen}
+                      alt=""
+                      className="h-16 w-16 rounded border border-border object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => quitarImagenDePaso(i)}
+                      className="text-xs text-ink-faint hover:text-alert"
+                    >
+                      Quitar imagen
+                    </button>
+                  </div>
+                ) : (
+                  <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-rm hover:underline">
+                    + Imagen de cómo se programa
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) agregarImagenAPaso(i, file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
               </div>
               {pasos.length > 1 && (
                 <button
@@ -384,10 +447,41 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                   <textarea
                     value={paso.detalle}
                     onChange={(e) => actualizarPasoContraste(i, "detalle", e.target.value)}
-                    placeholder="Detalle (opcional)"
+                    placeholder="Cómo se programa (opcional)"
                     rows={2}
                     className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                   />
+                  {paso.imagen ? (
+                    <div className="flex items-center gap-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={paso.imagen}
+                        alt=""
+                        className="h-16 w-16 rounded border border-border object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => quitarImagenDePasoContraste(i)}
+                        className="text-xs text-ink-faint hover:text-alert"
+                      >
+                        Quitar imagen
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="inline-flex cursor-pointer items-center gap-1 text-xs text-rm hover:underline">
+                      + Imagen de cómo se programa
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) agregarImagenAPasoContraste(i, file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
                 <button
                   type="button"

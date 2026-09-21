@@ -5,6 +5,7 @@ export type Modalidad = "RM" | "TC" | "RX";
 export interface PasoProtocolo {
   titulo: string;
   detalle: string;
+  imagen?: string;
 }
 
 export interface ValorParametro {
