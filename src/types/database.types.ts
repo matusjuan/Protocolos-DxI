@@ -6,6 +6,7 @@ export interface PasoProtocolo {
   titulo: string;
   detalle: string;
   imagen?: string;
+  condicionOpcional?: string;
 }
 
 export interface ValorParametro {
@@ -37,11 +38,6 @@ export interface VideoProtocolo {
   mostrarEn?: "sin" | "con" | "ambos";
 }
 
-export interface IndicacionEspecial {
-  nombre: string;
-  pasos: PasoProtocolo[];
-}
-
 export interface Protocolo {
   id: string;
   modalidad: Modalidad;
@@ -53,7 +49,6 @@ export interface Protocolo {
   detalleContraste: string | null;
   pasos: PasoProtocolo[];
   pasosConContraste?: PasoProtocolo[];
-  indicacionesEspeciales?: IndicacionEspecial[];
   reconstrucciones?: PasoProtocolo[];
   parametrosPorEdad?: ParametrosPorGrupo[];
   postProceso: string | null;

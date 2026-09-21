@@ -22,15 +22,13 @@ function DetalleProtocolo() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conContraste, setConContraste] = useState(false);
-  const [indicacionesSeleccionadas, setIndicacionesSeleccionadas] = useState<Set<number>>(
-    new Set()
-  );
+  const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
 
-  function alternarIndicacion(i: number) {
-    setIndicacionesSeleccionadas((prev) => {
+  function alternarCondicion(condicion: string) {
+    setCondicionesActivas((prev) => {
       const nuevo = new Set(prev);
-      if (nuevo.has(i)) nuevo.delete(i);
-      else nuevo.add(i);
+      if (nuevo.has(condicion)) nuevo.delete(condicion);
+      else nuevo.add(condicion);
       return nuevo;
     });
   }
@@ -197,38 +195,48 @@ function DetalleProtocolo() {
                 </p>
               )}
 
-              {protocolo.indicacionesEspeciales && protocolo.indicacionesEspeciales.length > 0 && (
+              {(conContraste && protocolo.pasosConContraste?.length
+                ? protocolo.pasosConContraste
+                : protocolo.pasos
+              )
+                .map((p) => p.condicionOpcional)
+                .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx).length >
+                0 && (
                 <div className="mb-3 rounded border border-border bg-surface p-3">
                   <p className="mb-2 text-xs font-medium text-ink-dim">
                     ¿Alguna indicación especial? (tildá las que correspondan)
                   </p>
                   <div className="flex flex-wrap gap-x-4 gap-y-2">
-                    {protocolo.indicacionesEspeciales.map((ie, i) => (
-                      <label key={i} className="flex items-center gap-2 text-sm text-ink">
-                        <input
-                          type="checkbox"
-                          checked={indicacionesSeleccionadas.has(i)}
-                          onChange={() => alternarIndicacion(i)}
-                          className="h-4 w-4 accent-rm"
-                        />
-                        {ie.nombre}
-                      </label>
-                    ))}
+                    {(conContraste && protocolo.pasosConContraste?.length
+                      ? protocolo.pasosConContraste
+                      : protocolo.pasos
+                    )
+                      .map((p) => p.condicionOpcional)
+                      .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx)
+                      .map((condicion) => (
+                        <label key={condicion} className="flex items-center gap-2 text-sm text-ink">
+                          <input
+                            type="checkbox"
+                            checked={condicionesActivas.has(condicion)}
+                            onChange={() => alternarCondicion(condicion)}
+                            className="h-4 w-4 accent-rm"
+                          />
+                          {condicion}
+                        </label>
+                      ))}
                   </div>
                 </div>
               )}
 
               <ol className="flex flex-col gap-2">
-                {(() => {
-                  const base =
-                    conContraste && protocolo.pasosConContraste?.length
-                      ? protocolo.pasosConContraste
-                      : protocolo.pasos;
-                  const extras = (protocolo.indicacionesEspeciales ?? []).flatMap((ie, i) =>
-                    indicacionesSeleccionadas.has(i) ? ie.pasos : []
-                  );
-                  return [...base, ...extras];
-                })().map((paso, i) => {
+                {(conContraste && protocolo.pasosConContraste?.length
+                  ? protocolo.pasosConContraste
+                  : protocolo.pasos
+                )
+                  .filter(
+                    (p) => !p.condicionOpcional || condicionesActivas.has(p.condicionOpcional)
+                  )
+                  .map((paso, i) => {
                   const esMarcadorInyeccion = paso.titulo.includes("inyecta el contraste");
 
                   if (esMarcadorInyeccion) {
@@ -258,7 +266,14 @@ function DetalleProtocolo() {
                         <span className="font-mono text-sm text-ink-faint">
                           {String(i + 1).padStart(2, "0")}
                         </span>
-                        <span className="flex-1 text-sm font-medium text-ink">{paso.titulo}</span>
+                        <span className="flex-1 text-sm font-medium text-ink">
+                          {paso.titulo}
+                          {paso.condicionOpcional && (
+                            <span className="ml-2 rounded border border-rm-dim px-1.5 py-0.5 text-[10px] font-normal text-rm">
+                              {paso.condicionOpcional}
+                            </span>
+                          )}
+                        </span>
                         {tieneContenido && (
                           <span className="text-xs text-ink-faint">{abierto ? "▲" : "▼"}</span>
                         )}
