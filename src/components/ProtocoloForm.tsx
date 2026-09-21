@@ -73,6 +73,10 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   );
   const [arrastrandoPaso, setArrastrandoPaso] = useState<number | null>(null);
   const [arrastrandoPasoContraste, setArrastrandoPasoContraste] = useState<number | null>(null);
+  const [opcionalAbiertoPaso, setOpcionalAbiertoPaso] = useState<Set<number>>(new Set());
+  const [opcionalAbiertoPasoContraste, setOpcionalAbiertoPasoContraste] = useState<Set<number>>(
+    new Set()
+  );
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -470,17 +474,23 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                 <label className="flex items-center gap-1.5 text-xs text-ink-dim">
                   <input
                     type="checkbox"
-                    checked={!!paso.condicionOpcional}
-                    onChange={(e) =>
-                      actualizarPaso(i, "condicionOpcional", e.target.checked ? " " : "")
-                    }
+                    checked={opcionalAbiertoPaso.has(i) || !!paso.condicionOpcional}
+                    onChange={(e) => {
+                      setOpcionalAbiertoPaso((prev) => {
+                        const nuevo = new Set(prev);
+                        if (e.target.checked) nuevo.add(i);
+                        else nuevo.delete(i);
+                        return nuevo;
+                      });
+                      if (!e.target.checked) actualizarPaso(i, "condicionOpcional", "");
+                    }}
                     className="h-3.5 w-3.5 accent-rm"
                   />
                   Es opcional (solo para cierta indicación)
                 </label>
-                {paso.condicionOpcional !== undefined && paso.condicionOpcional !== "" && (
+                {(opcionalAbiertoPaso.has(i) || !!paso.condicionOpcional) && (
                   <input
-                    value={paso.condicionOpcional.trim()}
+                    value={paso.condicionOpcional ?? ""}
                     onChange={(e) => actualizarPaso(i, "condicionOpcional", e.target.value)}
                     placeholder="¿Cuándo se hace? (ej: Sospecha de metástasis o tumor)"
                     className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
@@ -637,21 +647,26 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                   <label className="flex items-center gap-1.5 text-xs text-ink-dim">
                     <input
                       type="checkbox"
-                      checked={!!paso.condicionOpcional}
-                      onChange={(e) =>
-                        actualizarPasoContraste(
-                          i,
-                          "condicionOpcional",
-                          e.target.checked ? " " : ""
-                        )
+                      checked={
+                        opcionalAbiertoPasoContraste.has(i) || !!paso.condicionOpcional
                       }
+                      onChange={(e) => {
+                        setOpcionalAbiertoPasoContraste((prev) => {
+                          const nuevo = new Set(prev);
+                          if (e.target.checked) nuevo.add(i);
+                          else nuevo.delete(i);
+                          return nuevo;
+                        });
+                        if (!e.target.checked)
+                          actualizarPasoContraste(i, "condicionOpcional", "");
+                      }}
                       className="h-3.5 w-3.5 accent-rm"
                     />
                     Es opcional (solo para cierta indicación)
                   </label>
-                  {paso.condicionOpcional !== undefined && paso.condicionOpcional !== "" && (
+                  {(opcionalAbiertoPasoContraste.has(i) || !!paso.condicionOpcional) && (
                     <input
-                      value={paso.condicionOpcional.trim()}
+                      value={paso.condicionOpcional ?? ""}
                       onChange={(e) =>
                         actualizarPasoContraste(i, "condicionOpcional", e.target.value)
                       }
