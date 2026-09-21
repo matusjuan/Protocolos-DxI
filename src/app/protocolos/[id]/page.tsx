@@ -22,7 +22,12 @@ function DetalleProtocolo() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conContraste, setConContraste] = useState(false);
+  const [contrasteZonas, setContrasteZonas] = useState<Record<number, boolean>>({});
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
+
+  function alternarContrasteZona(i: number) {
+    setContrasteZonas((prev) => ({ ...prev, [i]: !prev[i] }));
+  }
 
   function alternarCondicion(condicion: string) {
     setCondicionesActivas((prev) => {
@@ -146,74 +151,118 @@ function DetalleProtocolo() {
             <TablaParametros grupos={protocolo.parametrosPorEdad} />
           )}
 
-          {protocolo.pasos?.length > 0 && (
-            <div className="mb-6">
-              {protocolo.modalidad === "RM" && (
-                <div className="mb-3 grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setConContraste(false)}
-                    className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                      !conContraste
-                        ? "border-rm bg-rm-dim text-ink"
-                        : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
-                    }`}
-                  >
-                    Sin contraste
-                  </button>
-                  <button
-                    onClick={() => setConContraste(true)}
-                    className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                      conContraste
-                        ? "border-tc bg-tc-dim text-ink"
-                        : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
-                    }`}
-                  >
-                    Con contraste
-                  </button>
-                </div>
-              )}
+          {(protocolo.zonas?.length || protocolo.pasos?.length > 0) && (() => {
+            const tieneZonas = !!protocolo.zonas?.length;
 
-              {protocolo.usaContraste && (protocolo.modalidad !== "RM" || conContraste) && (
-                <div className="mb-4 rounded border border-tc-dim bg-tc-dim/10 p-4">
-                  <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
-                    Contraste
-                  </p>
-                  <p className="text-sm text-ink">
-                    {protocolo.detalleContraste || "Este estudio requiere contraste."}
-                  </p>
-                </div>
-              )}
-
-              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
-                Técnica
-              </p>
-
-              {conContraste && !protocolo.pasosConContraste?.length && (
-                <p className="mb-2 text-xs text-ink-faint">
-                  Todavía no hay una lista de secuencias con contraste cargada para este
-                  estudio — se muestra la misma técnica de base.
-                </p>
-              )}
-
-              {(conContraste && protocolo.pasosConContraste?.length
+            const itemsFinal: typeof protocolo.pasos = tieneZonas
+              ? (() => {
+                  const zonas = protocolo.zonas!;
+                  const bases = zonas.flatMap((z) => z.pasos);
+                  const algunaConContraste = zonas.some((_, i) => contrasteZonas[i]);
+                  const posts = zonas.flatMap((z, i) =>
+                    contrasteZonas[i] ? z.pasosConContraste ?? [] : []
+                  );
+                  return algunaConContraste
+                    ? [...bases, { titulo: "💉 Acá se inyecta el contraste", detalle: "" }, ...posts]
+                    : bases;
+                })()
+              : conContraste && protocolo.pasosConContraste?.length
                 ? protocolo.pasosConContraste
-                : protocolo.pasos
-              )
-                .map((p) => p.condicionOpcional)
-                .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx).length >
-                0 && (
-                <div className="mb-3 rounded border border-border bg-surface p-3">
-                  <p className="mb-2 text-xs font-medium text-ink-dim">
-                    ¿Alguna indicación especial? (tildá las que correspondan)
+                : protocolo.pasos;
+
+            const condicionesDisponibles = itemsFinal
+              .map((p) => p.condicionOpcional)
+              .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx);
+
+            const itemsVisibles = itemsFinal.filter(
+              (p) => !p.condicionOpcional || condicionesActivas.has(p.condicionOpcional)
+            );
+
+            return (
+              <div className="mb-6">
+                {tieneZonas ? (
+                  <div className="mb-3 flex flex-col gap-2">
+                    {protocolo.zonas!.map((z, i) => (
+                      <div key={i} className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => setContrasteZonas((p) => ({ ...p, [i]: false }))}
+                          className={`rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-colors ${
+                            !contrasteZonas[i]
+                              ? "border-rm bg-rm-dim text-ink"
+                              : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
+                          }`}
+                        >
+                          {z.nombre} — Sin contraste
+                        </button>
+                        <button
+                          onClick={() => alternarContrasteZona(i)}
+                          className={`rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-colors ${
+                            contrasteZonas[i]
+                              ? "border-tc bg-tc-dim text-ink"
+                              : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
+                          }`}
+                        >
+                          {z.nombre} — Con contraste
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  protocolo.modalidad === "RM" && (
+                    <div className="mb-3 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setConContraste(false)}
+                        className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                          !conContraste
+                            ? "border-rm bg-rm-dim text-ink"
+                            : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
+                        }`}
+                      >
+                        Sin contraste
+                      </button>
+                      <button
+                        onClick={() => setConContraste(true)}
+                        className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                          conContraste
+                            ? "border-tc bg-tc-dim text-ink"
+                            : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
+                        }`}
+                      >
+                        Con contraste
+                      </button>
+                    </div>
+                  )
+                )}
+
+                {!tieneZonas && protocolo.usaContraste && (protocolo.modalidad !== "RM" || conContraste) && (
+                  <div className="mb-4 rounded border border-tc-dim bg-tc-dim/10 p-4">
+                    <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
+                      Contraste
+                    </p>
+                    <p className="text-sm text-ink">
+                      {protocolo.detalleContraste || "Este estudio requiere contraste."}
+                    </p>
+                  </div>
+                )}
+
+                <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                  Técnica
+                </p>
+
+                {!tieneZonas && conContraste && !protocolo.pasosConContraste?.length && (
+                  <p className="mb-2 text-xs text-ink-faint">
+                    Todavía no hay una lista de secuencias con contraste cargada para este
+                    estudio — se muestra la misma técnica de base.
                   </p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-2">
-                    {(conContraste && protocolo.pasosConContraste?.length
-                      ? protocolo.pasosConContraste
-                      : protocolo.pasos
-                    )
-                      .map((p) => p.condicionOpcional)
-                      .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx)
-                      .map((condicion) => (
+                )}
+
+                {condicionesDisponibles.length > 0 && (
+                  <div className="mb-3 rounded border border-border bg-surface p-3">
+                    <p className="mb-2 text-xs font-medium text-ink-dim">
+                      ¿Alguna indicación especial? (tildá las que correspondan)
+                    </p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                      {condicionesDisponibles.map((condicion) => (
                         <label key={condicion} className="flex items-center gap-2 text-sm text-ink">
                           <input
                             type="checkbox"
@@ -224,85 +273,79 @@ function DetalleProtocolo() {
                           {condicion}
                         </label>
                       ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <ol className="flex flex-col gap-2">
-                {(conContraste && protocolo.pasosConContraste?.length
-                  ? protocolo.pasosConContraste
-                  : protocolo.pasos
-                )
-                  .filter(
-                    (p) => !p.condicionOpcional || condicionesActivas.has(p.condicionOpcional)
-                  )
-                  .map((paso, i) => {
-                  const esMarcadorInyeccion = paso.titulo.includes("inyecta el contraste");
+                <ol className="flex flex-col gap-2">
+                  {itemsVisibles.map((paso, i) => {
+                    const esMarcadorInyeccion = paso.titulo.includes("inyecta el contraste");
 
-                  if (esMarcadorInyeccion) {
+                    if (esMarcadorInyeccion) {
+                      return (
+                        <li key={i} className="my-1 flex items-center gap-3 py-1">
+                          <span className="h-px flex-1 bg-tc-dim" />
+                          <span className="whitespace-nowrap text-xs font-semibold text-tc">
+                            {paso.titulo}
+                          </span>
+                          <span className="h-px flex-1 bg-tc-dim" />
+                        </li>
+                      );
+                    }
+
+                    const abierto = pasosAbiertos.has(i);
+                    const tieneContenido =
+                      (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;
                     return (
-                      <li key={i} className="my-1 flex items-center gap-3 py-1">
-                        <span className="h-px flex-1 bg-tc-dim" />
-                        <span className="whitespace-nowrap text-xs font-semibold text-tc">
-                          {paso.titulo}
-                        </span>
-                        <span className="h-px flex-1 bg-tc-dim" />
+                      <li key={i} className="overflow-hidden rounded border border-border bg-surface">
+                        <button
+                          type="button"
+                          onClick={() => tieneContenido && alternarPaso(i)}
+                          className={`flex w-full items-center gap-3 p-4 text-left ${
+                            tieneContenido ? "cursor-pointer hover:bg-surface2" : "cursor-default"
+                          }`}
+                        >
+                          <span className="font-mono text-sm text-ink-faint">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span className="flex-1 text-sm font-medium text-ink">
+                            {paso.titulo}
+                            {paso.condicionOpcional && (
+                              <span className="ml-2 rounded border border-rm-dim px-1.5 py-0.5 text-[10px] font-normal text-rm">
+                                {paso.condicionOpcional}
+                              </span>
+                            )}
+                          </span>
+                          {tieneContenido && (
+                            <span className="text-xs text-ink-faint">{abierto ? "▲" : "▼"}</span>
+                          )}
+                        </button>
+                        {tieneContenido && abierto && (
+                          <div className="border-t border-border bg-bg px-4 py-3 pl-11">
+                            {paso.detalle && (
+                              <p className="whitespace-pre-line text-sm text-ink-dim">
+                                {paso.detalle}
+                              </p>
+                            )}
+                            {paso.imagen && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={paso.imagen}
+                                alt={`Cómo programar: ${paso.titulo}`}
+                                className={`max-h-72 rounded border border-border object-contain ${
+                                  paso.detalle ? "mt-3" : ""
+                                }`}
+                              />
+                            )}
+                          </div>
+                        )}
                       </li>
                     );
-                  }
-
-                  const abierto = pasosAbiertos.has(i);
-                  const tieneContenido =
-                    (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;
-                  return (
-                    <li key={i} className="overflow-hidden rounded border border-border bg-surface">
-                      <button
-                        type="button"
-                        onClick={() => tieneContenido && alternarPaso(i)}
-                        className={`flex w-full items-center gap-3 p-4 text-left ${
-                          tieneContenido ? "cursor-pointer hover:bg-surface2" : "cursor-default"
-                        }`}
-                      >
-                        <span className="font-mono text-sm text-ink-faint">
-                          {String(i + 1).padStart(2, "0")}
-                        </span>
-                        <span className="flex-1 text-sm font-medium text-ink">
-                          {paso.titulo}
-                          {paso.condicionOpcional && (
-                            <span className="ml-2 rounded border border-rm-dim px-1.5 py-0.5 text-[10px] font-normal text-rm">
-                              {paso.condicionOpcional}
-                            </span>
-                          )}
-                        </span>
-                        {tieneContenido && (
-                          <span className="text-xs text-ink-faint">{abierto ? "▲" : "▼"}</span>
-                        )}
-                      </button>
-                      {tieneContenido && abierto && (
-                        <div className="border-t border-border bg-bg px-4 py-3 pl-11">
-                          {paso.detalle && (
-                            <p className="whitespace-pre-line text-sm text-ink-dim">
-                              {paso.detalle}
-                            </p>
-                          )}
-                          {paso.imagen && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={paso.imagen}
-                              alt={`Cómo programar: ${paso.titulo}`}
-                              className={`max-h-72 rounded border border-border object-contain ${
-                                paso.detalle ? "mt-3" : ""
-                              }`}
-                            />
-                          )}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
+                  })}
+                </ol>
+              </div>
+            );
+          })()}
 
           {protocolo.reconstrucciones && protocolo.reconstrucciones.length > 0 && (
             <div className="mb-6">

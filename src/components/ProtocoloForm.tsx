@@ -19,6 +19,7 @@ import type {
   PasoProtocolo,
   Protocolo,
   VideoProtocolo,
+  ZonaProtocolo,
 } from "@/types/database.types";
 
 const MAX_IMAGENES = 4;
@@ -62,6 +63,64 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [patologia, setPatologia] = useState(inicial?.patologia ?? "");
   const [indicacion, setIndicacion] = useState(inicial?.indicacion ?? "");
   const [usaContraste, setUsaContraste] = useState(inicial?.usaContraste ?? false);
+  const [esCombinado, setEsCombinado] = useState(!!inicial?.zonas?.length);
+  const [zonas, setZonas] = useState<ZonaProtocolo[]>(
+    inicial?.zonas ?? []
+  );
+
+  function agregarZona() {
+    setZonas((prev) => [
+      ...prev,
+      { nombre: "", pasos: [{ titulo: "", detalle: "" }], pasosConContraste: [] },
+    ]);
+  }
+
+  function quitarZona(i: number) {
+    setZonas((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  function actualizarNombreZona(i: number, nombre: string) {
+    setZonas((prev) => prev.map((z, idx) => (idx === i ? { ...z, nombre } : z)));
+  }
+
+  function agregarPasoZona(i: number, lista: "pasos" | "pasosConContraste") {
+    setZonas((prev) =>
+      prev.map((z, idx) =>
+        idx === i
+          ? { ...z, [lista]: [...(z[lista] ?? []), { titulo: "", detalle: "" }] }
+          : z
+      )
+    );
+  }
+
+  function actualizarPasoZona(
+    i: number,
+    lista: "pasos" | "pasosConContraste",
+    j: number,
+    campo: keyof PasoProtocolo,
+    valor: string
+  ) {
+    setZonas((prev) =>
+      prev.map((z, idx) =>
+        idx === i
+          ? {
+              ...z,
+              [lista]: (z[lista] ?? []).map((p, pIdx) =>
+                pIdx === j ? { ...p, [campo]: valor } : p
+              ),
+            }
+          : z
+      )
+    );
+  }
+
+  function quitarPasoZona(i: number, lista: "pasos" | "pasosConContraste", j: number) {
+    setZonas((prev) =>
+      prev.map((z, idx) =>
+        idx === i ? { ...z, [lista]: (z[lista] ?? []).filter((_, pIdx) => pIdx !== j) } : z
+      )
+    );
+  }
   const [detalleContraste, setDetalleContraste] = useState(
     inicial?.detalleContraste ?? ""
   );
@@ -277,9 +336,22 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       indicacion: indicacion.trim() || null,
       usaContraste,
       detalleContraste: usaContraste ? detalleContraste.trim() || null : null,
-      pasos: pasos.filter((p) => p.titulo.trim().length > 0),
-      pasosConContraste: usaContraste
-        ? pasosConContraste.filter((p) => p.titulo.trim().length > 0)
+      pasos: esCombinado ? [] : pasos.filter((p) => p.titulo.trim().length > 0),
+      pasosConContraste: esCombinado
+        ? []
+        : usaContraste
+          ? pasosConContraste.filter((p) => p.titulo.trim().length > 0)
+          : [],
+      zonas: esCombinado
+        ? zonas
+            .filter((z) => z.nombre.trim().length > 0)
+            .map((z) => ({
+              nombre: z.nombre.trim(),
+              pasos: z.pasos.filter((p) => p.titulo.trim().length > 0),
+              pasosConContraste: (z.pasosConContraste ?? []).filter(
+                (p) => p.titulo.trim().length > 0
+              ),
+            }))
         : [],
       reconstrucciones: reconstrucciones.filter((r) => r.titulo.trim().length > 0),
       postProceso: postProceso.trim() || null,
@@ -378,6 +450,160 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
         />
       </div>
 
+      <div className="rounded border border-rm bg-rm-dim/10 p-4">
+        <label className="flex items-center gap-2 text-sm font-medium text-ink">
+          <input
+            type="checkbox"
+            checked={esCombinado}
+            onChange={(e) => setEsCombinado(e.target.checked)}
+            className="h-4 w-4 accent-rm"
+          />
+          Es un estudio combinado (varias zonas, ej: Cerebro + Cervical)
+        </label>
+        <p className="mt-1 text-xs text-ink-faint">
+          Activá esto si el estudio junta más de una zona del cuerpo y cada una puede pedirse
+          con o sin contraste por separado. Reemplaza la técnica normal de abajo por un
+          editor de zonas.
+        </p>
+      </div>
+
+      {esCombinado ? (
+        <div className="rounded border border-rm-dim bg-rm-dim/5 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-medium text-rm">Zonas del estudio</label>
+            <button
+              type="button"
+              onClick={agregarZona}
+              className="text-xs text-rm hover:underline"
+            >
+              + Agregar zona
+            </button>
+          </div>
+          <div className="flex flex-col gap-4">
+            {zonas.map((z, i) => (
+              <div key={i} className="rounded border border-border bg-surface p-3">
+                <div className="mb-3 flex items-center gap-2">
+                  <input
+                    value={z.nombre}
+                    onChange={(e) => actualizarNombreZona(i, e.target.value)}
+                    placeholder="Nombre de la zona (ej: Cerebro)"
+                    className="flex-1 rounded border border-border bg-bg px-3 py-1.5 text-sm font-medium text-ink outline-none focus:border-rm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => quitarZona(i)}
+                    className="text-xs text-ink-faint hover:text-alert"
+                  >
+                    Quitar zona
+                  </button>
+                </div>
+
+                <p className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">
+                  Secuencias base (siempre)
+                </p>
+                <div className="mb-3 flex flex-col gap-2 pl-2">
+                  {z.pasos.map((paso, j) => (
+                    <div key={j} className="flex gap-2 rounded border border-border bg-bg p-2">
+                      <div className="flex-1 space-y-1.5">
+                        <input
+                          value={paso.titulo}
+                          onChange={(e) =>
+                            actualizarPasoZona(i, "pasos", j, "titulo", e.target.value)
+                          }
+                          placeholder="Título de la secuencia"
+                          className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                        />
+                        <textarea
+                          value={paso.detalle}
+                          onChange={(e) =>
+                            actualizarPasoZona(i, "pasos", j, "detalle", e.target.value)
+                          }
+                          placeholder="Cómo se programa (opcional)"
+                          rows={2}
+                          className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => quitarPasoZona(i, "pasos", j)}
+                        className="self-start text-xs text-ink-faint hover:text-alert"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => agregarPasoZona(i, "pasos")}
+                    className="self-start text-xs text-rm hover:underline"
+                  >
+                    + Agregar secuencia base
+                  </button>
+                </div>
+
+                <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
+                  Secuencias post-contraste (solo si esta zona va con contraste)
+                </p>
+                <div className="flex flex-col gap-2 pl-2">
+                  {(z.pasosConContraste ?? []).map((paso, j) => (
+                    <div key={j} className="flex gap-2 rounded border border-tc-dim bg-bg p-2">
+                      <div className="flex-1 space-y-1.5">
+                        <input
+                          value={paso.titulo}
+                          onChange={(e) =>
+                            actualizarPasoZona(
+                              i,
+                              "pasosConContraste",
+                              j,
+                              "titulo",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Título de la secuencia (ej: Ax T1 FS C/C)"
+                          className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                        />
+                        <textarea
+                          value={paso.detalle}
+                          onChange={(e) =>
+                            actualizarPasoZona(
+                              i,
+                              "pasosConContraste",
+                              j,
+                              "detalle",
+                              e.target.value
+                            )
+                          }
+                          placeholder="Cómo se programa (opcional)"
+                          rows={2}
+                          className="w-full rounded border border-border bg-surface px-2 py-1 text-sm text-ink outline-none focus:border-rm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => quitarPasoZona(i, "pasosConContraste", j)}
+                        className="self-start text-xs text-ink-faint hover:text-alert"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => agregarPasoZona(i, "pasosConContraste")}
+                    className="self-start text-xs text-tc hover:underline"
+                  >
+                    + Agregar secuencia post-contraste
+                  </button>
+                </div>
+              </div>
+            ))}
+            {zonas.length === 0 && (
+              <p className="text-xs text-ink-faint">Todavía no agregaste ninguna zona.</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <>
       <div className="rounded border border-border bg-surface p-4">
         <label className="flex items-center gap-2 text-sm text-ink">
           <input
@@ -726,6 +952,8 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
             ))}
           </div>
         </div>
+      )}
+        </>
       )}
 
       {modalidad === "TC" && (
