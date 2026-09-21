@@ -36,6 +36,18 @@ function PanelAdmin() {
     cargar();
   }
 
+  function descargarBackup() {
+    const datos = JSON.stringify(protocolos, null, 2);
+    const blob = new Blob([datos], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const fecha = new Date().toISOString().slice(0, 10);
+    a.download = `backup-protocolos-${fecha}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div className="flex h-screen flex-col bg-bg">
       <Encabezado />
@@ -49,12 +61,21 @@ function PanelAdmin() {
                 {protocolos.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <Link
-              href="/admin/nuevo"
-              className="rounded bg-rm-dim px-3 py-2 text-sm font-medium text-ink hover:bg-rm hover:text-bg"
-            >
-              + Nuevo protocolo
-            </Link>
+            <div className="flex gap-2">
+              <button
+                onClick={descargarBackup}
+                disabled={protocolos.length === 0}
+                className="rounded border border-border px-3 py-2 text-sm text-ink-dim hover:border-rm-dim hover:text-ink disabled:opacity-50"
+              >
+                ⬇ Backup completo
+              </button>
+              <Link
+                href="/admin/nuevo"
+                className="rounded bg-rm-dim px-3 py-2 text-sm font-medium text-ink hover:bg-rm hover:text-bg"
+              >
+                + Nuevo protocolo
+              </Link>
+            </div>
           </div>
 
           {cargando && (
