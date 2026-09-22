@@ -20,6 +20,16 @@ function ArmarCombinado() {
   const [seleccionIds, setSeleccionIds] = useState<string[]>([]);
   const [contraste, setContraste] = useState<Record<string, boolean>>({});
   const [pasosAbiertos, setPasosAbiertos] = useState<Set<number>>(new Set());
+  const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
+
+  function alternarCondicion(condicion: string) {
+    setCondicionesActivas((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(condicion)) nuevo.delete(condicion);
+      else nuevo.add(condicion);
+      return nuevo;
+    });
+  }
 
   useEffect(() => {
     let activo = true;
@@ -170,6 +180,22 @@ function ArmarCombinado() {
       : preTotal;
   }, [seleccionados, contraste]);
 
+  const condicionesDisponibles = useMemo(
+    () =>
+      itemsFinal
+        .map((p) => p.condicionOpcional)
+        .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx),
+    [itemsFinal]
+  );
+
+  const itemsVisibles = useMemo(
+    () =>
+      itemsFinal.filter(
+        (p) => !p.condicionOpcional || condicionesActivas.has(p.condicionOpcional)
+      ),
+    [itemsFinal, condicionesActivas]
+  );
+
   return (
     <div className="flex h-screen flex-col bg-bg">
       <Encabezado />
@@ -298,8 +324,28 @@ function ArmarCombinado() {
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Técnica combinada
               </p>
+              {condicionesDisponibles.length > 0 && (
+                <div className="mb-3 rounded border border-border bg-surface p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-dim">
+                    ¿Alguna indicación especial? (tildá las que correspondan)
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {condicionesDisponibles.map((condicion) => (
+                      <label key={condicion} className="flex items-center gap-2 text-sm text-ink">
+                        <input
+                          type="checkbox"
+                          checked={condicionesActivas.has(condicion)}
+                          onChange={() => alternarCondicion(condicion)}
+                          className="h-4 w-4 accent-rm"
+                        />
+                        {condicion}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <ol className="flex flex-col gap-2">
-                {itemsFinal.map((paso, i) => {
+                {itemsVisibles.map((paso, i) => {
                   const esMarcador = paso.titulo.includes("inyecta el contraste");
                   if (esMarcador) {
                     return (
@@ -328,6 +374,11 @@ function ArmarCombinado() {
                         </span>
                         <span className="flex-1 text-sm font-medium text-ink">
                           {paso.titulo}
+                          {paso.condicionOpcional && (
+                            <span className="ml-2 rounded border border-rm-dim px-1.5 py-0.5 text-[10px] font-normal text-rm">
+                              {paso.condicionOpcional}
+                            </span>
+                          )}
                           <span className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] font-normal text-ink-faint">
                             {paso._origen}
                           </span>
