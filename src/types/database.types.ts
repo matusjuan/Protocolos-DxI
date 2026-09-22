@@ -8,6 +8,7 @@ export interface PasoProtocolo {
   imagen?: string;
   condicionOpcional?: string;
   soloConContraste?: boolean;
+  soloSinContraste?: boolean;
   despuesDeInyeccion?: boolean;
   dinamico?: boolean;
 }

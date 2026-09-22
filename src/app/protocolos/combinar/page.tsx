@@ -103,8 +103,9 @@ function ArmarCombinado() {
   const itemsFinal: ItemMezcla[] = useMemo(() => {
     const partes = seleccionados.map((p) => {
       const fija = p.pasos.filter((x) => !x.soloConContraste);
-      const antes = p.pasos.filter((x) => !x.despuesDeInyeccion);
-      const despues = p.pasos.filter((x) => x.despuesDeInyeccion);
+      const pasosConContraste = p.pasos.filter((x) => !x.soloSinContraste);
+      const antes = pasosConContraste.filter((x) => !x.despuesDeInyeccion);
+      const despues = pasosConContraste.filter((x) => x.despuesDeInyeccion);
       const on = !!contraste[p.id];
       return { p, fija, antes, despues, on };
     });

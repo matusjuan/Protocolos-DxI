@@ -131,7 +131,21 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
 
   function alternarSoloConContraste(i: number) {
     setPasos((prev) =>
-      prev.map((p, idx) => (idx === i ? { ...p, soloConContraste: !p.soloConContraste } : p))
+      prev.map((p, idx) =>
+        idx === i
+          ? { ...p, soloConContraste: !p.soloConContraste, soloSinContraste: false }
+          : p
+      )
+    );
+  }
+
+  function alternarSoloSinContraste(i: number) {
+    setPasos((prev) =>
+      prev.map((p, idx) =>
+        idx === i
+          ? { ...p, soloSinContraste: !p.soloSinContraste, soloConContraste: false }
+          : p
+      )
     );
   }
 
@@ -446,6 +460,15 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                         className="h-3.5 w-3.5 accent-tc"
                       />
                       Solo si hay contraste (si no, es fija)
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-tc">
+                      <input
+                        type="checkbox"
+                        checked={!!paso.soloSinContraste}
+                        onChange={() => alternarSoloSinContraste(i)}
+                        className="h-3.5 w-3.5 accent-tc"
+                      />
+                      Solo si NO hay contraste
                     </label>
                     <label className="flex items-center gap-1.5 text-xs text-tc">
                       <input
