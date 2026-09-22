@@ -92,11 +92,11 @@ function ArmarCombinado() {
 
   const itemsFinal: ItemMezcla[] = useMemo(() => {
     const partes = seleccionados.map((p) => {
-      const fija = p.pasos.filter((x) => !x.tipo || x.tipo === "fija");
-      const fijaYPre = p.pasos.filter((x) => x.tipo !== "post-contraste");
-      const post = p.pasos.filter((x) => x.tipo === "post-contraste");
+      const fija = p.pasos.filter((x) => !x.soloConContraste);
+      const antes = p.pasos.filter((x) => !x.despuesDeInyeccion);
+      const despues = p.pasos.filter((x) => x.despuesDeInyeccion);
       const on = !!contraste[p.id];
-      return { p, fija, fijaYPre, post, on };
+      return { p, fija, antes, despues, on };
     });
 
     const conOrigen = (lista: PasoProtocolo[], origen: string): ItemMezcla[] =>
@@ -105,14 +105,14 @@ function ArmarCombinado() {
     const algunaOn = partes.some((x) => x.on);
 
     const preTotal = partes.flatMap((x) =>
-      x.on ? conOrigen(x.fijaYPre, x.p.patologia) : conOrigen(x.fija, x.p.patologia)
+      x.on ? conOrigen(x.antes, x.p.patologia) : conOrigen(x.fija, x.p.patologia)
     );
 
     const postTotal = algunaOn
       ? [...partes]
           .reverse()
           .filter((x) => x.on)
-          .flatMap((x) => conOrigen(x.post, x.p.patologia))
+          .flatMap((x) => conOrigen(x.despues, x.p.patologia))
       : [];
 
     return algunaOn

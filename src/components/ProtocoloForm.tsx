@@ -129,10 +129,16 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasos((prev) => prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p)));
   }
 
-  function setTipoSecuencia(i: number, tipo: "fija" | "pre-contraste" | "post-contraste") {
+  function alternarSoloConContraste(i: number) {
+    setPasos((prev) =>
+      prev.map((p, idx) => (idx === i ? { ...p, soloConContraste: !p.soloConContraste } : p))
+    );
+  }
+
+  function alternarDespuesDeInyeccion(i: number) {
     setPasos((prev) =>
       prev.map((p, idx) =>
-        idx === i ? { ...p, tipo: tipo === "fija" ? undefined : tipo } : p
+        idx === i ? { ...p, despuesDeInyeccion: !p.despuesDeInyeccion } : p
       )
     );
   }
@@ -425,26 +431,25 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                   />
                 )}
                 {usaContraste && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-ink-faint">Cuándo se hace:</span>
-                    <div className="flex gap-1 rounded border border-border p-0.5">
-                      {(["fija", "pre-contraste", "post-contraste"] as const).map((t) => (
-                        <button
-                          key={t}
-                          type="button"
-                          onClick={() => setTipoSecuencia(i, t)}
-                          className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
-                            (paso.tipo ?? "fija") === t
-                              ? t === "fija"
-                                ? "bg-surface2 text-ink"
-                                : "bg-tc-dim text-ink"
-                              : "text-ink-faint hover:text-ink"
-                          }`}
-                        >
-                          {t === "fija" ? "Fija (siempre)" : t === "pre-contraste" ? "Pre-contraste" : "Post-contraste"}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs text-tc">
+                      <input
+                        type="checkbox"
+                        checked={!!paso.soloConContraste}
+                        onChange={() => alternarSoloConContraste(i)}
+                        className="h-3.5 w-3.5 accent-tc"
+                      />
+                      Solo si hay contraste (si no, es fija)
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-tc">
+                      <input
+                        type="checkbox"
+                        checked={!!paso.despuesDeInyeccion}
+                        onChange={() => alternarDespuesDeInyeccion(i)}
+                        className="h-3.5 w-3.5 accent-tc"
+                      />
+                      Va después de inyectar
+                    </label>
                   </div>
                 )}
                 {paso.imagen ? (
