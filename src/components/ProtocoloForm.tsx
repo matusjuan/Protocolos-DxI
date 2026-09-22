@@ -72,6 +72,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [opcionalAbiertoPaso, setOpcionalAbiertoPaso] = useState<Set<number>>(new Set());
   const [ocultarAbiertoPaso, setOcultarAbiertoPaso] = useState<Set<number>>(new Set());
   const [zonaAbiertoPaso, setZonaAbiertoPaso] = useState<Set<number>>(new Set());
+  const [notaAbiertoPaso, setNotaAbiertoPaso] = useState<Set<number>>(new Set());
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -499,6 +500,31 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     value={paso.zona ?? ""}
                     onChange={(e) => actualizarPaso(i, "zona", e.target.value)}
                     placeholder="Nombre de la zona (ej: Cervical)"
+                    className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                )}
+                <label className="flex items-center gap-1.5 text-xs text-ink-dim">
+                  <input
+                    type="checkbox"
+                    checked={notaAbiertoPaso.has(i) || !!paso.notaManual}
+                    onChange={(e) => {
+                      setNotaAbiertoPaso((prev) => {
+                        const nuevo = new Set(prev);
+                        if (e.target.checked) nuevo.add(i);
+                        else nuevo.delete(i);
+                        return nuevo;
+                      });
+                      if (!e.target.checked) actualizarPaso(i, "notaManual", "");
+                    }}
+                    className="h-3.5 w-3.5 accent-rm"
+                  />
+                  Personalizar el cartel automático de PACS para este paso puntual
+                </label>
+                {(notaAbiertoPaso.has(i) || !!paso.notaManual) && (
+                  <input
+                    value={paso.notaManual ?? ""}
+                    onChange={(e) => actualizarPaso(i, "notaManual", e.target.value)}
+                    placeholder='Ej: Enviar "Water", "In-Phase" y "Fat" a PACS'
                     className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                   />
                 )}

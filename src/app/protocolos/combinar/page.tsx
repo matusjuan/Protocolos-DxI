@@ -409,7 +409,7 @@ function ArmarCombinado() {
                   }
                   const abierto = pasosAbiertos.has(i);
                   const tieneContenido = (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;
-                  const nota = notaAutomatica(paso.titulo);
+                  const nota = paso.notaManual || notaAutomatica(paso.titulo);
                   return (
                     <li key={i} className="overflow-hidden rounded border border-border bg-surface">
                       <button

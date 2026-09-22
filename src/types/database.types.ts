@@ -9,6 +9,7 @@ export interface PasoProtocolo {
   condicionOpcional?: string;
   ocultarConCondicion?: string;
   zona?: string;
+  notaManual?: string;
   soloConContraste?: boolean;
   soloSinContraste?: boolean;
   despuesDeInyeccion?: boolean;
