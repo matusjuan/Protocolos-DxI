@@ -102,17 +102,40 @@ function ArmarCombinado() {
     const conOrigen = (lista: PasoProtocolo[], origen: string): ItemMezcla[] =>
       lista.map((x) => ({ ...x, _origen: origen }));
 
+    function deduplicar(lista: ItemMezcla[]): ItemMezcla[] {
+      const vistos = new Map<string, ItemMezcla>();
+      const resultado: ItemMezcla[] = [];
+      for (const item of lista) {
+        const clave = item.titulo.trim().toLowerCase();
+        const existente = vistos.get(clave);
+        if (existente) {
+          if (!existente._origen.includes(item._origen)) {
+            existente._origen = `${existente._origen} + ${item._origen}`;
+          }
+        } else {
+          const copia = { ...item };
+          vistos.set(clave, copia);
+          resultado.push(copia);
+        }
+      }
+      return resultado;
+    }
+
     const algunaOn = partes.some((x) => x.on);
 
-    const preTotal = partes.flatMap((x) =>
-      x.on ? conOrigen(x.antes, x.p.patologia) : conOrigen(x.fija, x.p.patologia)
+    const preTotal = deduplicar(
+      partes.flatMap((x) =>
+        x.on ? conOrigen(x.antes, x.p.patologia) : conOrigen(x.fija, x.p.patologia)
+      )
     );
 
     const postTotal = algunaOn
-      ? [...partes]
-          .reverse()
-          .filter((x) => x.on)
-          .flatMap((x) => conOrigen(x.despues, x.p.patologia))
+      ? deduplicar(
+          [...partes]
+            .reverse()
+            .filter((x) => x.on)
+            .flatMap((x) => conOrigen(x.despues, x.p.patologia))
+        )
       : [];
 
     return algunaOn
