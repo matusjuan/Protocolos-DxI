@@ -143,6 +143,12 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     );
   }
 
+  function alternarDinamico(i: number) {
+    setPasos((prev) =>
+      prev.map((p, idx) => (idx === i ? { ...p, dinamico: !p.dinamico } : p))
+    );
+  }
+
   function actualizarReconstruccion(i: number, campo: keyof PasoProtocolo, valor: string) {
     setReconstrucciones((prev) =>
       prev.map((r, idx) => (idx === i ? { ...r, [campo]: valor } : r))
@@ -450,6 +456,17 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                       />
                       Va después de inyectar
                     </label>
+                    {paso.despuesDeInyeccion && (
+                      <label className="flex items-center gap-1.5 text-xs text-tc">
+                        <input
+                          type="checkbox"
+                          checked={!!paso.dinamico}
+                          onChange={() => alternarDinamico(i)}
+                          className="h-3.5 w-3.5 accent-tc"
+                        />
+                        Es dinámica (ej: TRICKS) — va primera al inyectar
+                      </label>
+                    )}
                   </div>
                 )}
                 {paso.imagen ? (

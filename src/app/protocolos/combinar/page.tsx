@@ -157,6 +157,10 @@ function ArmarCombinado() {
       }
     }
 
+    // Las secuencias dinámicas (ej: TRICKS) van enseguida de inyectar,
+    // antes que cualquier otra secuencia post-contraste.
+    postTotal.sort((a, b) => (a.dinamico ? 0 : 1) - (b.dinamico ? 0 : 1));
+
     return algunaOn
       ? [
           ...preTotal,
