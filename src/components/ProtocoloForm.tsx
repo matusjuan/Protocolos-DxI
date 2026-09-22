@@ -129,9 +129,11 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     setPasos((prev) => prev.map((p, idx) => (idx === i ? { ...p, imagen: undefined } : p)));
   }
 
-  function alternarPostContraste(i: number) {
+  function setTipoSecuencia(i: number, tipo: "fija" | "pre-contraste" | "post-contraste") {
     setPasos((prev) =>
-      prev.map((p, idx) => (idx === i ? { ...p, postContraste: !p.postContraste } : p))
+      prev.map((p, idx) =>
+        idx === i ? { ...p, tipo: tipo === "fija" ? undefined : tipo } : p
+      )
     );
   }
 
@@ -423,15 +425,27 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                   />
                 )}
                 {usaContraste && (
-                  <label className="flex items-center gap-1.5 text-xs text-tc">
-                    <input
-                      type="checkbox"
-                      checked={!!paso.postContraste}
-                      onChange={() => alternarPostContraste(i)}
-                      className="h-3.5 w-3.5 accent-tc"
-                    />
-                    Es post-contraste (solo aparece al elegir &quot;Con contraste&quot;)
-                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-ink-faint">Cuándo se hace:</span>
+                    <div className="flex gap-1 rounded border border-border p-0.5">
+                      {(["fija", "pre-contraste", "post-contraste"] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setTipoSecuencia(i, t)}
+                          className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
+                            (paso.tipo ?? "fija") === t
+                              ? t === "fija"
+                                ? "bg-surface2 text-ink"
+                                : "bg-tc-dim text-ink"
+                              : "text-ink-faint hover:text-ink"
+                          }`}
+                        >
+                          {t === "fija" ? "Fija (siempre)" : t === "pre-contraste" ? "Pre-contraste" : "Post-contraste"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 {paso.imagen ? (
                   <div className="flex items-center gap-2">

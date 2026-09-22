@@ -7,7 +7,7 @@ export interface PasoProtocolo {
   detalle: string;
   imagen?: string;
   condicionOpcional?: string;
-  postContraste?: boolean;
+  tipo?: "fija" | "pre-contraste" | "post-contraste";
 }
 
 export interface ValorParametro {

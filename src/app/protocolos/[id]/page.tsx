@@ -147,7 +147,7 @@ function DetalleProtocolo() {
           )}
 
           {protocolo.pasos?.length > 0 && (() => {
-            const primerPostIdx = protocolo.pasos.findIndex((p) => p.postContraste);
+            const primerPostIdx = protocolo.pasos.findIndex((p) => p.tipo === "post-contraste");
             const itemsFinal = conContraste
               ? primerPostIdx === -1
                 ? protocolo.pasos
@@ -156,7 +156,7 @@ function DetalleProtocolo() {
                     { titulo: "💉 Acá se inyecta el contraste", detalle: "" },
                     ...protocolo.pasos.slice(primerPostIdx),
                   ]
-              : protocolo.pasos.filter((p) => !p.postContraste);
+              : protocolo.pasos.filter((p) => !p.tipo || p.tipo === "fija");
 
             const condicionesDisponibles = itemsFinal
               .map((p) => p.condicionOpcional)

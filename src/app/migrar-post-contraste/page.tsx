@@ -43,7 +43,7 @@ function MigrarPostContraste() {
         const pasosLimpios = pasosViejos.filter((p) => !esMarcador(p));
         const extrasLimpios = pasosConContrasteViejos
           .filter((p) => !esMarcador(p))
-          .map((p) => ({ ...p, postContraste: true }));
+          .map((p) => ({ ...p, tipo: "post-contraste" as const }));
 
         const pasosNuevos = [...pasosLimpios, ...extrasLimpios];
 
