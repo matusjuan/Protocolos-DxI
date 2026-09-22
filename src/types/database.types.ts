@@ -9,6 +9,7 @@ export interface PasoProtocolo {
   condicionOpcional?: string;
   soloConContraste?: boolean;
   despuesDeInyeccion?: boolean;
+  dinamico?: boolean;
 }
 
 export interface ValorParametro {
