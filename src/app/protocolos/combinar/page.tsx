@@ -22,12 +22,22 @@ function ArmarCombinado() {
   const [contraste, setContraste] = useState<Record<string, boolean>>({});
   const [pasosAbiertos, setPasosAbiertos] = useState<Set<number>>(new Set());
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
+  const [zonasDesactivadas, setZonasDesactivadas] = useState<Set<string>>(new Set());
 
   function alternarCondicion(condicion: string) {
     setCondicionesActivas((prev) => {
       const nuevo = new Set(prev);
       if (nuevo.has(condicion)) nuevo.delete(condicion);
       else nuevo.add(condicion);
+      return nuevo;
+    });
+  }
+
+  function alternarZona(zona: string) {
+    setZonasDesactivadas((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(zona)) nuevo.delete(zona);
+      else nuevo.add(zona);
       return nuevo;
     });
   }
@@ -190,6 +200,14 @@ function ArmarCombinado() {
     [itemsFinal]
   );
 
+  const zonasDisponibles = useMemo(
+    () =>
+      itemsFinal
+        .map((p) => p.zona)
+        .filter((z, idx, arr): z is string => !!z && arr.indexOf(z) === idx),
+    [itemsFinal]
+  );
+
   const itemsVisibles = useMemo(
     () =>
       itemsFinal.filter((p) => {
@@ -199,9 +217,12 @@ function ArmarCombinado() {
         if (p.ocultarConCondicion && condicionesActivas.has(p.ocultarConCondicion)) {
           return false;
         }
+        if (p.zona && zonasDesactivadas.has(p.zona)) {
+          return false;
+        }
         return true;
       }),
-    [itemsFinal, condicionesActivas]
+    [itemsFinal, condicionesActivas, zonasDesactivadas]
   );
 
   return (
@@ -347,6 +368,26 @@ function ArmarCombinado() {
                           className="h-4 w-4 accent-rm"
                         />
                         {condicion}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {zonasDisponibles.length > 1 && (
+                <div className="mb-3 rounded border border-border bg-surface p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-dim">
+                    Zonas incluidas (destildá la que no corresponda)
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {zonasDisponibles.map((zona) => (
+                      <label key={zona} className="flex items-center gap-2 text-sm text-ink">
+                        <input
+                          type="checkbox"
+                          checked={!zonasDesactivadas.has(zona)}
+                          onChange={() => alternarZona(zona)}
+                          className="h-4 w-4 accent-rm"
+                        />
+                        {zona}
                       </label>
                     ))}
                   </div>

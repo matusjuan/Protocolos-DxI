@@ -71,6 +71,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [arrastrandoPaso, setArrastrandoPaso] = useState<number | null>(null);
   const [opcionalAbiertoPaso, setOpcionalAbiertoPaso] = useState<Set<number>>(new Set());
   const [ocultarAbiertoPaso, setOcultarAbiertoPaso] = useState<Set<number>>(new Set());
+  const [zonaAbiertoPaso, setZonaAbiertoPaso] = useState<Set<number>>(new Set());
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -473,6 +474,31 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     value={paso.ocultarConCondicion ?? ""}
                     onChange={(e) => actualizarPaso(i, "ocultarConCondicion", e.target.value)}
                     placeholder="Escribí EXACTAMENTE igual la indicación que la reemplaza (ej: Sospecha de metástasis o tumor)"
+                    className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                )}
+                <label className="flex items-center gap-1.5 text-xs text-ink-dim">
+                  <input
+                    type="checkbox"
+                    checked={zonaAbiertoPaso.has(i) || !!paso.zona}
+                    onChange={(e) => {
+                      setZonaAbiertoPaso((prev) => {
+                        const nuevo = new Set(prev);
+                        if (e.target.checked) nuevo.add(i);
+                        else nuevo.delete(i);
+                        return nuevo;
+                      });
+                      if (!e.target.checked) actualizarPaso(i, "zona", "");
+                    }}
+                    className="h-3.5 w-3.5 accent-rm"
+                  />
+                  Es de una zona que se puede destildar (ej: columna: Cervical/Dorsal/Lumbar)
+                </label>
+                {(zonaAbiertoPaso.has(i) || !!paso.zona) && (
+                  <input
+                    value={paso.zona ?? ""}
+                    onChange={(e) => actualizarPaso(i, "zona", e.target.value)}
+                    placeholder="Nombre de la zona (ej: Cervical)"
                     className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                   />
                 )}
