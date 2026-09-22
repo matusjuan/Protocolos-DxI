@@ -165,9 +165,15 @@ function DetalleProtocolo() {
               .map((p) => p.condicionOpcional)
               .filter((c, idx, arr): c is string => !!c && arr.indexOf(c) === idx);
 
-            const itemsVisibles = itemsFinal.filter(
-              (p) => !p.condicionOpcional || condicionesActivas.has(p.condicionOpcional)
-            );
+            const itemsVisibles = itemsFinal.filter((p) => {
+              if (p.condicionOpcional && !condicionesActivas.has(p.condicionOpcional)) {
+                return false;
+              }
+              if (p.ocultarConCondicion && condicionesActivas.has(p.ocultarConCondicion)) {
+                return false;
+              }
+              return true;
+            });
 
             return (
               <div className="mb-6">

@@ -191,9 +191,15 @@ function ArmarCombinado() {
 
   const itemsVisibles = useMemo(
     () =>
-      itemsFinal.filter(
-        (p) => !p.condicionOpcional || condicionesActivas.has(p.condicionOpcional)
-      ),
+      itemsFinal.filter((p) => {
+        if (p.condicionOpcional && !condicionesActivas.has(p.condicionOpcional)) {
+          return false;
+        }
+        if (p.ocultarConCondicion && condicionesActivas.has(p.ocultarConCondicion)) {
+          return false;
+        }
+        return true;
+      }),
     [itemsFinal, condicionesActivas]
   );
 

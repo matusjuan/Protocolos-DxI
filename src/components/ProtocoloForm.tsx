@@ -70,6 +70,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   );
   const [arrastrandoPaso, setArrastrandoPaso] = useState<number | null>(null);
   const [opcionalAbiertoPaso, setOpcionalAbiertoPaso] = useState<Set<number>>(new Set());
+  const [ocultarAbiertoPaso, setOcultarAbiertoPaso] = useState<Set<number>>(new Set());
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
@@ -447,6 +448,31 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                     value={paso.condicionOpcional ?? ""}
                     onChange={(e) => actualizarPaso(i, "condicionOpcional", e.target.value)}
                     placeholder="¿Cuándo se hace? (ej: Sospecha de metástasis o tumor)"
+                    className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                  />
+                )}
+                <label className="flex items-center gap-1.5 text-xs text-ink-dim">
+                  <input
+                    type="checkbox"
+                    checked={ocultarAbiertoPaso.has(i) || !!paso.ocultarConCondicion}
+                    onChange={(e) => {
+                      setOcultarAbiertoPaso((prev) => {
+                        const nuevo = new Set(prev);
+                        if (e.target.checked) nuevo.add(i);
+                        else nuevo.delete(i);
+                        return nuevo;
+                      });
+                      if (!e.target.checked) actualizarPaso(i, "ocultarConCondicion", "");
+                    }}
+                    className="h-3.5 w-3.5 accent-rm"
+                  />
+                  Se reemplaza si se tilda otra indicación
+                </label>
+                {(ocultarAbiertoPaso.has(i) || !!paso.ocultarConCondicion) && (
+                  <input
+                    value={paso.ocultarConCondicion ?? ""}
+                    onChange={(e) => actualizarPaso(i, "ocultarConCondicion", e.target.value)}
+                    placeholder="Escribí EXACTAMENTE igual la indicación que la reemplaza (ej: Sospecha de metástasis o tumor)"
                     className="w-full rounded border border-rm-dim bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                   />
                 )}
