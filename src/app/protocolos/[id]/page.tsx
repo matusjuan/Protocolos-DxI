@@ -12,6 +12,7 @@ import { VideoEmbed } from "@/components/VideoEmbed";
 import { db } from "@/lib/firebase/client";
 import { metaModalidad } from "@/lib/modalidades";
 import { notaAutomatica } from "@/lib/notasAutomaticas";
+import { esOsteoarticular } from "@/lib/regionesEspeciales";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type { Protocolo } from "@/types/database.types";
 
@@ -228,6 +229,12 @@ function DetalleProtocolo() {
                     <p className="text-sm text-ink">
                       {protocolo.detalleContraste || "Este estudio requiere contraste."}
                     </p>
+                    {esOsteoarticular(protocolo.region) && (
+                      <p className="mt-2 text-sm font-semibold text-tc">
+                        📋 Hablar con residente para ver en qué plano realizar secuencias sin y
+                        con contraste.
+                      </p>
+                    )}
                   </div>
                 )}
 

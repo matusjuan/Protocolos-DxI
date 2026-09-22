@@ -7,10 +7,12 @@ import { RutaProtegida } from "@/components/RutaProtegida";
 import { Encabezado } from "@/components/Encabezado";
 import { db } from "@/lib/firebase/client";
 import { notaAutomatica } from "@/lib/notasAutomaticas";
+import { esOsteoarticular } from "@/lib/regionesEspeciales";
 import type { PasoProtocolo, Protocolo } from "@/types/database.types";
 
 interface ItemMezcla extends PasoProtocolo {
   _origen: string;
+  _noUnir?: boolean;
 }
 
 function ArmarCombinado() {
@@ -118,19 +120,25 @@ function ArmarCombinado() {
       const antes = pasosConContraste.filter((x) => !x.despuesDeInyeccion);
       const despues = pasosConContraste.filter((x) => x.despuesDeInyeccion);
       const on = !!contraste[p.id];
-      return { p, fija, antes, despues, on };
+      const noUnir = esOsteoarticular(p.region);
+      return { p, fija, antes, despues, on, noUnir };
     });
 
-    const conOrigen = (lista: PasoProtocolo[], origen: string): ItemMezcla[] =>
-      lista.map((x) => ({ ...x, _origen: origen }));
+    const conOrigen = (lista: PasoProtocolo[], origen: string, noUnir: boolean): ItemMezcla[] =>
+      lista.map((x) => ({ ...x, _origen: origen, _noUnir: noUnir }));
 
     const clave = (titulo: string) => titulo.trim().toLowerCase();
 
     function deduplicar(lista: ItemMezcla[]): ItemMezcla[] {
       const vistos = new Map<string, ItemMezcla>();
       const resultado: ItemMezcla[] = [];
-      for (const item of lista) {
-        const k = clave(item.titulo);
+      lista.forEach((item, idx) => {
+        // Los pasos de regiones osteoarticulares/pelvis ósea nunca se unen
+        // entre sí, aunque compartan el mismo título: son articulaciones
+        // distintas, no la misma toma repetida.
+        const k = item._noUnir
+          ? `__sin-unir__${idx}__${item._origen}__${clave(item.titulo)}`
+          : clave(item.titulo);
         const existente = vistos.get(k);
         if (existente) {
           if (!existente._origen.includes(item._origen)) {
@@ -141,7 +149,7 @@ function ArmarCombinado() {
           vistos.set(k, copia);
           resultado.push(copia);
         }
-      }
+      });
       return resultado;
     }
 
@@ -149,7 +157,9 @@ function ArmarCombinado() {
 
     const preTotal = deduplicar(
       partes.flatMap((x) =>
-        x.on ? conOrigen(x.antes, x.p.patologia) : conOrigen(x.fija, x.p.patologia)
+        x.on
+          ? conOrigen(x.antes, x.p.patologia, x.noUnir)
+          : conOrigen(x.fija, x.p.patologia, x.noUnir)
       )
     );
 
@@ -158,17 +168,24 @@ function ArmarCombinado() {
           [...partes]
             .reverse()
             .filter((x) => x.on)
-            .flatMap((x) => conOrigen(x.despues, x.p.patologia))
+            .flatMap((x) => conOrigen(x.despues, x.p.patologia, x.noUnir))
         )
       : [];
 
     // Una secuencia que ya se hace antes de inyectar (para cualquier estudio
     // seleccionado) no debe repetirse después, aunque otro protocolo la tenga
     // cargada como "después de inyección". Se fusiona el origen en el ítem
-    // que ya está antes en vez de duplicarlo.
-    const preClaves = new Map(preTotal.map((item) => [clave(item.titulo), item]));
+    // que ya está antes en vez de duplicarlo — salvo en las regiones que
+    // nunca se unen (osteoarticular / pelvis ósea).
+    const preClaves = new Map(
+      preTotal.filter((item) => !item._noUnir).map((item) => [clave(item.titulo), item])
+    );
     const postTotal: ItemMezcla[] = [];
     for (const item of postCandidatos) {
+      if (item._noUnir) {
+        postTotal.push(item);
+        continue;
+      }
       const existente = preClaves.get(clave(item.titulo));
       if (existente) {
         if (!existente._origen.includes(item._origen)) {
@@ -353,6 +370,15 @@ function ArmarCombinado() {
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Técnica combinada
               </p>
+              {seleccionados.some((p) => esOsteoarticular(p.region) && contraste[p.id]) && (
+                <div className="mb-3 rounded border border-tc-dim bg-tc-dim/10 p-4">
+                  <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">Contraste</p>
+                  <p className="text-sm font-semibold text-ink">
+                    📋 Hablar con residente para ver en qué plano realizar secuencias sin y con
+                    contraste.
+                  </p>
+                </div>
+              )}
               {condicionesDisponibles.length > 0 && (
                 <div className="mb-3 rounded border border-border bg-surface p-3">
                   <p className="mb-2 text-xs font-medium text-ink-dim">
