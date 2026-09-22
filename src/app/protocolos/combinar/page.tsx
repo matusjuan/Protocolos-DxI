@@ -102,19 +102,21 @@ function ArmarCombinado() {
     const conOrigen = (lista: PasoProtocolo[], origen: string): ItemMezcla[] =>
       lista.map((x) => ({ ...x, _origen: origen }));
 
+    const clave = (titulo: string) => titulo.trim().toLowerCase();
+
     function deduplicar(lista: ItemMezcla[]): ItemMezcla[] {
       const vistos = new Map<string, ItemMezcla>();
       const resultado: ItemMezcla[] = [];
       for (const item of lista) {
-        const clave = item.titulo.trim().toLowerCase();
-        const existente = vistos.get(clave);
+        const k = clave(item.titulo);
+        const existente = vistos.get(k);
         if (existente) {
           if (!existente._origen.includes(item._origen)) {
             existente._origen = `${existente._origen} + ${item._origen}`;
           }
         } else {
           const copia = { ...item };
-          vistos.set(clave, copia);
+          vistos.set(k, copia);
           resultado.push(copia);
         }
       }
@@ -129,7 +131,7 @@ function ArmarCombinado() {
       )
     );
 
-    const postTotal = algunaOn
+    const postCandidatos = algunaOn
       ? deduplicar(
           [...partes]
             .reverse()
@@ -137,6 +139,23 @@ function ArmarCombinado() {
             .flatMap((x) => conOrigen(x.despues, x.p.patologia))
         )
       : [];
+
+    // Una secuencia que ya se hace antes de inyectar (para cualquier estudio
+    // seleccionado) no debe repetirse después, aunque otro protocolo la tenga
+    // cargada como "después de inyección". Se fusiona el origen en el ítem
+    // que ya está antes en vez de duplicarlo.
+    const preClaves = new Map(preTotal.map((item) => [clave(item.titulo), item]));
+    const postTotal: ItemMezcla[] = [];
+    for (const item of postCandidatos) {
+      const existente = preClaves.get(clave(item.titulo));
+      if (existente) {
+        if (!existente._origen.includes(item._origen)) {
+          existente._origen = `${existente._origen} + ${item._origen}`;
+        }
+      } else {
+        postTotal.push(item);
+      }
+    }
 
     return algunaOn
       ? [
