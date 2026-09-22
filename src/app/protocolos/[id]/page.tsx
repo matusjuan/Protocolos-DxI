@@ -11,6 +11,7 @@ import { GaleriaImagenes } from "@/components/GaleriaImagenes";
 import { VideoEmbed } from "@/components/VideoEmbed";
 import { db } from "@/lib/firebase/client";
 import { metaModalidad } from "@/lib/modalidades";
+import { notaAutomatica } from "@/lib/notasAutomaticas";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type { Protocolo } from "@/types/database.types";
 
@@ -257,6 +258,7 @@ function DetalleProtocolo() {
                     const abierto = pasosAbiertos.has(i);
                     const tieneContenido =
                       (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;
+                    const nota = notaAutomatica(paso.titulo);
                     return (
                       <li key={i} className="overflow-hidden rounded border border-border bg-surface">
                         <button
@@ -269,14 +271,19 @@ function DetalleProtocolo() {
                           <span className="font-mono text-sm text-ink-faint">
                             {String(i + 1).padStart(2, "0")}
                           </span>
-                          <span className="flex-1 text-sm font-medium text-ink">
-                            {paso.titulo}
-                            {paso.condicionOpcional && (
-                              <span className="ml-2 rounded border border-rm-dim px-1.5 py-0.5 text-[10px] font-normal text-rm">
-                                {paso.condicionOpcional}
-                              </span>
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-ink">
+                              {paso.titulo}
+                              {paso.condicionOpcional && (
+                                <span className="ml-2 rounded border border-rm-dim px-1.5 py-0.5 text-[10px] font-normal text-rm">
+                                  {paso.condicionOpcional}
+                                </span>
+                              )}
+                            </span>
+                            {nota && (
+                              <p className="mt-1 text-xs font-semibold text-tc">📋 {nota}</p>
                             )}
-                          </span>
+                          </div>
                           {tieneContenido && (
                             <span className="text-xs text-ink-faint">{abierto ? "▲" : "▼"}</span>
                           )}
