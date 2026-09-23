@@ -12,10 +12,12 @@ import { slugRegion } from "@/lib/imagenes";
  * sumala acá (usando el mismo formato que devuelve slugRegion).
  */
 const SLUGS_OSTEOARTICULARES = [
+  "osteoarticular",
   "miembro-inferior",
   "miembros-inferiores",
   "miembro-superior",
   "miembros-superiores",
+  "pelvis",
   "pelvis-osea",
 ];
 
