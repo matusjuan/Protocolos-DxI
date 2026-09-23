@@ -120,9 +120,17 @@ function ArmarCombinado() {
       const pasosConContraste = p.pasos.filter((x) => !x.soloSinContraste);
       const antes = pasosConContraste.filter((x) => !x.despuesDeInyeccion);
       const despues = pasosConContraste.filter((x) => x.despuesDeInyeccion);
+      // Pasos "Solo si NO hay contraste": normalmente se excluyen cuando el
+      // estudio va con contraste. Pero si este estudio tiene su propia
+      // dinámica y la "pierde" frente a otro estudio combinado, se quedaría
+      // sin ningún "antes" para comparar — ahí se usan estos como reserva.
+      const reservaSiPierdeDinamico = p.pasos.filter(
+        (x) => x.soloSinContraste && !x.despuesDeInyeccion
+      );
       const on = !!contraste[p.id];
       const noUnir = esOsteoarticular(p.region, p.patologia);
-      return { p, fija, antes, despues, on, noUnir };
+      const tieneDinamico = p.pasos.some((x) => x.dinamico);
+      return { p, fija, antes, despues, reservaSiPierdeDinamico, on, noUnir, tieneDinamico };
     });
 
     const conOrigen = (lista: PasoProtocolo[], origen: string, noUnir: boolean): ItemMezcla[] =>
@@ -208,6 +216,36 @@ function ArmarCombinado() {
     // antes que cualquier otra secuencia post-contraste.
     postTotal.sort((a, b) => (a.dinamico ? 0 : 1) - (b.dinamico ? 0 : 1));
 
+    // Si dos o más estudios combinados compiten por la dinámica (cada uno
+    // tiene la suya, con contraste), el/los que no quedaron seleccionados
+    // en "¿en qué zona se dispara el contraste?" se quedan sin su propia
+    // dinámica — que normalmente les servía de referencia "antes". Si ese
+    // estudio tiene pasos "Solo si NO hay contraste", se agregan igual como
+    // referencia, para que siempre haya un antes/después para comparar.
+    const origenesConDinamico = Array.from(
+      new Set([...preTotal, ...postTotal].filter((item) => item.dinamico).map((i) => i._origen))
+    );
+    if (origenesConDinamico.length > 1) {
+      const zonaElegida =
+        zonaDinamicaManual && origenesConDinamico.includes(zonaDinamicaManual)
+          ? zonaDinamicaManual
+          : origenesConDinamico[0];
+      for (const parte of partes) {
+        if (
+          parte.on &&
+          parte.tieneDinamico &&
+          parte.p.patologia !== zonaElegida &&
+          origenesConDinamico.includes(parte.p.patologia)
+        ) {
+          const reserva = conOrigen(parte.reservaSiPierdeDinamico, parte.p.patologia, parte.noUnir);
+          for (const item of reserva) {
+            const yaExiste = preTotal.some((p) => clave(p.titulo) === clave(item.titulo));
+            if (!yaExiste) preTotal.push(item);
+          }
+        }
+      }
+    }
+
     return algunaOn
       ? [
           ...preTotal,
@@ -215,7 +253,7 @@ function ArmarCombinado() {
           ...postTotal,
         ]
       : preTotal;
-  }, [seleccionados, contraste]);
+  }, [seleccionados, contraste, zonaDinamicaManual]);
 
   const condicionesDisponibles = useMemo(
     () =>
