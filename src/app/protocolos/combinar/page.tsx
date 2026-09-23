@@ -136,8 +136,13 @@ function ArmarCombinado() {
       lista.forEach((item, idx) => {
         // Los pasos de regiones osteoarticulares/pelvis ósea nunca se unen
         // entre sí, aunque compartan el mismo título: son articulaciones
-        // distintas, no la misma toma repetida.
-        const k = item._noUnir
+        // distintas, no la misma toma repetida. Lo mismo para las
+        // secuencias dinámicas: aunque dos estudios usen el mismo nombre
+        // (ej. "3D Ax Lava dinámico"), tienen que quedar separadas para
+        // que el selector de "¿en qué zona se dispara el contraste?"
+        // pueda elegir una sin que ya vengan fusionadas.
+        const sinUnir = item._noUnir || item.dinamico;
+        const k = sinUnir
           ? `__sin-unir__${idx}__${item._origen}__${clave(item.titulo)}`
           : clave(item.titulo);
         const existente = vistos.get(k);
@@ -177,13 +182,15 @@ function ArmarCombinado() {
     // seleccionado) no debe repetirse después, aunque otro protocolo la tenga
     // cargada como "después de inyección". Se fusiona el origen en el ítem
     // que ya está antes en vez de duplicarlo — salvo en las regiones que
-    // nunca se unen (osteoarticular / pelvis ósea).
+    // nunca se unen (osteoarticular / pelvis ósea) y las dinámicas.
     const preClaves = new Map(
-      preTotal.filter((item) => !item._noUnir).map((item) => [clave(item.titulo), item])
+      preTotal
+        .filter((item) => !item._noUnir && !item.dinamico)
+        .map((item) => [clave(item.titulo), item])
     );
     const postTotal: ItemMezcla[] = [];
     for (const item of postCandidatos) {
-      if (item._noUnir) {
+      if (item._noUnir || item.dinamico) {
         postTotal.push(item);
         continue;
       }
