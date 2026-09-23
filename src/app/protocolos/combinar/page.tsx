@@ -121,7 +121,7 @@ function ArmarCombinado() {
       const antes = pasosConContraste.filter((x) => !x.despuesDeInyeccion);
       const despues = pasosConContraste.filter((x) => x.despuesDeInyeccion);
       const on = !!contraste[p.id];
-      const noUnir = esOsteoarticular(p.region);
+      const noUnir = esOsteoarticular(p.region, p.patologia);
       return { p, fija, antes, despues, on, noUnir };
     });
 
@@ -395,7 +395,9 @@ function ArmarCombinado() {
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Técnica combinada
               </p>
-              {seleccionados.some((p) => esOsteoarticular(p.region) && contraste[p.id]) && (
+              {seleccionados.some(
+                (p) => esOsteoarticular(p.region, p.patologia) && contraste[p.id]
+              ) && (
                 <div className="mb-3 rounded border border-tc-dim bg-tc-dim/10 p-4">
                   <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">Contraste</p>
                   <p className="text-sm font-semibold text-ink">

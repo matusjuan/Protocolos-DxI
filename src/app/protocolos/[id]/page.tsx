@@ -229,7 +229,7 @@ function DetalleProtocolo() {
                     <p className="text-sm text-ink">
                       {protocolo.detalleContraste || "Este estudio requiere contraste."}
                     </p>
-                    {esOsteoarticular(protocolo.region) && (
+                    {esOsteoarticular(protocolo.region, protocolo.patologia) && (
                       <p className="mt-2 text-sm font-semibold text-tc">
                         📋 Hablar con residente para ver en qué plano realizar secuencias sin y
                         con contraste.
