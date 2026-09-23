@@ -25,6 +25,7 @@ function ArmarCombinado() {
   const [pasosAbiertos, setPasosAbiertos] = useState<Set<number>>(new Set());
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
   const [zonasDesactivadas, setZonasDesactivadas] = useState<Set<string>>(new Set());
+  const [zonaDinamicaManual, setZonaDinamicaManual] = useState<string | null>(null);
 
   function alternarCondicion(condicion: string) {
     setCondicionesActivas((prev) => {
@@ -225,6 +226,24 @@ function ArmarCombinado() {
     [itemsFinal]
   );
 
+  // Si más de un estudio combinado tiene su propia secuencia dinámica
+  // (ej: Abdomen + Pelvis, cada uno con su TRICKS), el contraste solo se
+  // dispara en una zona por vez — el técnico elige cuál, y la del otro
+  // estudio se oculta.
+  const origenesConDinamico = useMemo(
+    () =>
+      itemsFinal
+        .filter((p) => p.dinamico)
+        .map((p) => p._origen)
+        .filter((o, idx, arr): o is string => !!o && arr.indexOf(o) === idx),
+    [itemsFinal]
+  );
+
+  const zonaDinamicaActiva =
+    zonaDinamicaManual && origenesConDinamico.includes(zonaDinamicaManual)
+      ? zonaDinamicaManual
+      : origenesConDinamico[0];
+
   const itemsVisibles = useMemo(
     () =>
       itemsFinal.filter((p) => {
@@ -237,9 +256,12 @@ function ArmarCombinado() {
         if (p.zona && zonasDesactivadas.has(p.zona)) {
           return false;
         }
+        if (p.dinamico && origenesConDinamico.length > 1 && p._origen !== zonaDinamicaActiva) {
+          return false;
+        }
         return true;
       }),
-    [itemsFinal, condicionesActivas, zonasDesactivadas]
+    [itemsFinal, condicionesActivas, zonasDesactivadas, origenesConDinamico, zonaDinamicaActiva]
   );
 
   return (
@@ -251,9 +273,12 @@ function ArmarCombinado() {
             ← Volver a Protocolos
           </Link>
           <h1 className="mb-1 text-lg font-semibold text-ink">Armar estudio combinado</h1>
-          <p className="mb-6 text-sm text-ink-dim">
+          <p className="mb-1 text-sm text-ink-dim">
             Elegí los estudios que se piden juntos (ej: Cerebro + Cervical), decidí cuáles van
             con contraste, y armamos la técnica combinada.
+          </p>
+          <p className="mb-6 text-xs font-medium text-rm">
+            Esta herramienta es solo para protocolos de Resonancia (RM).
           </p>
 
           {error && (
@@ -414,6 +439,27 @@ function ArmarCombinado() {
                           className="h-4 w-4 accent-rm"
                         />
                         {zona}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {origenesConDinamico.length > 1 && (
+                <div className="mb-3 rounded border border-border bg-surface p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-dim">
+                    ¿En qué zona se dispara el contraste (dinámica)? Depende del paciente.
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                    {origenesConDinamico.map((origen) => (
+                      <label key={origen} className="flex items-center gap-2 text-sm text-ink">
+                        <input
+                          type="radio"
+                          name="zona-dinamica"
+                          checked={zonaDinamicaActiva === origen}
+                          onChange={() => setZonaDinamicaManual(origen)}
+                          className="h-4 w-4 accent-rm"
+                        />
+                        {origen}
                       </label>
                     ))}
                   </div>
