@@ -2,6 +2,9 @@ export type Rol = "admin" | "tecnico";
 
 export type Modalidad = "RM" | "TC" | "RX";
 
+// Resonador donde se hace una secuencia. Si un paso no tiene "equipo", aplica a ambos.
+export type Equipo = "1.5T" | "3T";
+
 export interface PasoProtocolo {
   titulo: string;
   detalle: string;
@@ -9,6 +12,7 @@ export interface PasoProtocolo {
   condicionOpcional?: string;
   ocultarConCondicion?: string;
   zona?: string;
+  equipo?: Equipo;
   notaManual?: string;
   soloConContraste?: boolean;
   soloSinContraste?: boolean;

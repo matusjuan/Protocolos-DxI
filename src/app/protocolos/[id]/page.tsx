@@ -13,6 +13,7 @@ import { db } from "@/lib/firebase/client";
 import { metaModalidad } from "@/lib/modalidades";
 import { notaAutomatica } from "@/lib/notasAutomaticas";
 import { esOsteoarticular } from "@/lib/regionesEspeciales";
+import { EQUIPOS, aplicaAEquipo, tieneVariantesPorEquipo, useEquipo } from "@/lib/equipo";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type { Protocolo } from "@/types/database.types";
 
@@ -26,6 +27,7 @@ function DetalleProtocolo() {
   const [conContraste, setConContraste] = useState(false);
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
   const [zonasDesactivadas, setZonasDesactivadas] = useState<Set<string>>(new Set());
+  const [equipo, setEquipo] = useEquipo();
 
   function alternarZona(zona: string) {
     setZonasDesactivadas((prev) => {
@@ -159,9 +161,17 @@ function DetalleProtocolo() {
           )}
 
           {protocolo.pasos?.length > 0 && (() => {
+            // Solo en resonancia: se quedan los pasos del resonador elegido
+            // (los que no tienen resonador asignado aplican a los dos).
+            const hayVariantesPorEquipo =
+              protocolo.modalidad === "RM" && tieneVariantesPorEquipo(protocolo.pasos);
+            const pasosDelEquipo =
+              protocolo.modalidad === "RM"
+                ? protocolo.pasos.filter((p) => aplicaAEquipo(p, equipo))
+                : protocolo.pasos;
             const pasosSegunContraste = conContraste
-              ? protocolo.pasos.filter((p) => !p.soloSinContraste)
-              : protocolo.pasos.filter((p) => !p.soloConContraste);
+              ? pasosDelEquipo.filter((p) => !p.soloSinContraste)
+              : pasosDelEquipo.filter((p) => !p.soloConContraste);
             const primerPostIdx = pasosSegunContraste.findIndex((p) => p.despuesDeInyeccion);
             const itemsFinal = conContraste
               ? primerPostIdx === -1
@@ -196,6 +206,28 @@ function DetalleProtocolo() {
 
             return (
               <div className="mb-6">
+                {hayVariantesPorEquipo && (
+                  <div className="mb-3">
+                    <p className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">
+                      Resonador
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {EQUIPOS.map((e) => (
+                        <button
+                          key={e}
+                          onClick={() => setEquipo(e)}
+                          className={`rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                            equipo === e
+                              ? "border-rm bg-rm-dim text-ink"
+                              : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
+                          }`}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {protocolo.modalidad === "RM" && (
                   <div className="mb-3 grid grid-cols-2 gap-2">
                     <button

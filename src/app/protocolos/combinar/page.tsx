@@ -8,6 +8,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { db } from "@/lib/firebase/client";
 import { notaAutomatica } from "@/lib/notasAutomaticas";
 import { esOsteoarticular } from "@/lib/regionesEspeciales";
+import { EQUIPOS, aplicaAEquipo, tieneVariantesPorEquipo, useEquipo } from "@/lib/equipo";
 import type { PasoProtocolo, Protocolo } from "@/types/database.types";
 
 interface ItemMezcla extends PasoProtocolo {
@@ -26,6 +27,7 @@ function ArmarCombinado() {
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
   const [zonasDesactivadas, setZonasDesactivadas] = useState<Set<string>>(new Set());
   const [zonaDinamicaManual, setZonaDinamicaManual] = useState<string | null>(null);
+  const [equipo, setEquipo] = useEquipo();
 
   function alternarCondicion(condicion: string) {
     setCondicionesActivas((prev) => {
@@ -116,20 +118,23 @@ function ArmarCombinado() {
 
   const itemsFinal: ItemMezcla[] = useMemo(() => {
     const partes = seleccionados.map((p) => {
-      const fija = p.pasos.filter((x) => !x.soloConContraste);
-      const pasosConContraste = p.pasos.filter((x) => !x.soloSinContraste);
+      // Solo los pasos que aplican al resonador elegido (los que no tienen
+      // resonador asignado aplican a los dos).
+      const pasosDelEquipo = p.pasos.filter((x) => aplicaAEquipo(x, equipo));
+      const fija = pasosDelEquipo.filter((x) => !x.soloConContraste);
+      const pasosConContraste = pasosDelEquipo.filter((x) => !x.soloSinContraste);
       const antes = pasosConContraste.filter((x) => !x.despuesDeInyeccion);
       const despues = pasosConContraste.filter((x) => x.despuesDeInyeccion);
       // Pasos "Solo si NO hay contraste": normalmente se excluyen cuando el
       // estudio va con contraste. Pero si este estudio tiene su propia
       // dinámica y la "pierde" frente a otro estudio combinado, se quedaría
       // sin ningún "antes" para comparar — ahí se usan estos como reserva.
-      const reservaSiPierdeDinamico = p.pasos.filter(
+      const reservaSiPierdeDinamico = pasosDelEquipo.filter(
         (x) => x.soloSinContraste && !x.despuesDeInyeccion
       );
       const on = !!contraste[p.id];
       const noUnir = esOsteoarticular(p.region, p.patologia);
-      const tieneDinamico = p.pasos.some((x) => x.dinamico);
+      const tieneDinamico = pasosDelEquipo.some((x) => x.dinamico);
       return { p, fija, antes, despues, reservaSiPierdeDinamico, on, noUnir, tieneDinamico };
     });
 
@@ -253,7 +258,7 @@ function ArmarCombinado() {
           ...postTotal,
         ]
       : preTotal;
-  }, [seleccionados, contraste, zonaDinamicaManual]);
+  }, [seleccionados, contraste, zonaDinamicaManual, equipo]);
 
   const condicionesDisponibles = useMemo(
     () =>
@@ -440,6 +445,28 @@ function ArmarCombinado() {
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Técnica combinada
               </p>
+              {seleccionados.some((p) => tieneVariantesPorEquipo(p.pasos)) && (
+                <div className="mb-3 rounded border border-border bg-surface p-3">
+                  <p className="mb-2 text-xs font-medium text-ink-dim">
+                    ¿En qué resonador se hace? (algunas secuencias cambian)
+                  </p>
+                  <div className="flex gap-2">
+                    {EQUIPOS.map((e) => (
+                      <button
+                        key={e}
+                        onClick={() => setEquipo(e)}
+                        className={`rounded border px-4 py-1.5 text-sm font-semibold transition-colors ${
+                          equipo === e
+                            ? "border-rm bg-rm-dim text-ink"
+                            : "border-border text-ink-faint hover:border-rm-dim hover:text-ink"
+                        }`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {seleccionados.some(
                 (p) => esOsteoarticular(p.region, p.patologia) && contraste[p.id]
               ) && (

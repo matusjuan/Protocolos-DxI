@@ -160,6 +160,18 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
     );
   }
 
+  function cambiarEquipo(i: number, valor: string) {
+    setPasos((prev) =>
+      prev.map((p, idx) => {
+        if (idx !== i) return p;
+        const copia = { ...p };
+        if (valor === "1.5T" || valor === "3T") copia.equipo = valor;
+        else delete copia.equipo;
+        return copia;
+      })
+    );
+  }
+
   function alternarDinamico(i: number) {
     setPasos((prev) =>
       prev.map((p, idx) => (idx === i ? { ...p, dinamico: !p.dinamico } : p))
@@ -428,6 +440,20 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
                   rows={2}
                   className="w-full rounded border border-border bg-bg px-3 py-1.5 text-sm text-ink outline-none focus:border-rm"
                 />
+                {modalidad === "RM" && (
+                  <label className="flex items-center gap-2 text-xs text-ink-dim">
+                    Resonador:
+                    <select
+                      value={paso.equipo ?? ""}
+                      onChange={(e) => cambiarEquipo(i, e.target.value)}
+                      className="rounded border border-border bg-bg px-2 py-1 text-xs text-ink outline-none focus:border-rm"
+                    >
+                      <option value="">Ambos (1.5T y 3T)</option>
+                      <option value="1.5T">Solo 1.5T</option>
+                      <option value="3T">Solo 3T</option>
+                    </select>
+                  </label>
+                )}
                 <label className="flex items-center gap-1.5 text-xs text-ink-dim">
                   <input
                     type="checkbox"
