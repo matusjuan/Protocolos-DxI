@@ -13,9 +13,9 @@ import { db } from "@/lib/firebase/client";
 import { metaModalidad } from "@/lib/modalidades";
 import { notaAutomatica } from "@/lib/notasAutomaticas";
 import { esOsteoarticular } from "@/lib/regionesEspeciales";
-import { EQUIPOS, aplicaAEquipo, tieneVariantesPorEquipo, useEquipo } from "@/lib/equipo";
+import { EQUIPOS, aplicaAEquipo } from "@/lib/equipo";
 import { useAuth } from "@/lib/firebase/AuthProvider";
-import type { Protocolo } from "@/types/database.types";
+import type { Equipo, Protocolo } from "@/types/database.types";
 
 function DetalleProtocolo() {
   const { id } = useParams<{ id: string }>();
@@ -24,10 +24,13 @@ function DetalleProtocolo() {
   const [protocolo, setProtocolo] = useState<Protocolo | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [conContraste, setConContraste] = useState(false);
+  // En Resonancia el técnico tiene que elegir primero el resonador y después
+  // con/sin contraste; hasta entonces no se muestra la técnica.
+  const [contrasteElegido, setContrasteElegido] = useState<boolean | null>(null);
+  const conContraste = contrasteElegido === true;
   const [condicionesActivas, setCondicionesActivas] = useState<Set<string>>(new Set());
   const [zonasDesactivadas, setZonasDesactivadas] = useState<Set<string>>(new Set());
-  const [equipo, setEquipo] = useEquipo();
+  const [equipo, setEquipo] = useState<Equipo | null>(null);
 
   function alternarZona(zona: string) {
     setZonasDesactivadas((prev) => {
@@ -109,6 +112,10 @@ function DetalleProtocolo() {
 
   const meta = metaModalidad(protocolo.modalidad);
 
+  // Solo se pide elegir resonador y contraste en Resonancia con técnica cargada.
+  const esRM = protocolo.modalidad === "RM" && (protocolo.pasos?.length ?? 0) > 0;
+  const listo = !esRM || (equipo !== null && contrasteElegido !== null);
+
   return (
     <div className="flex h-screen flex-col bg-bg">
       <Encabezado />
@@ -163,10 +170,8 @@ function DetalleProtocolo() {
           {protocolo.pasos?.length > 0 && (() => {
             // Solo en resonancia: se quedan los pasos del resonador elegido
             // (los que no tienen resonador asignado aplican a los dos).
-            const hayVariantesPorEquipo =
-              protocolo.modalidad === "RM" && tieneVariantesPorEquipo(protocolo.pasos);
             const pasosDelEquipo =
-              protocolo.modalidad === "RM"
+              esRM && equipo
                 ? protocolo.pasos.filter((p) => aplicaAEquipo(p, equipo))
                 : protocolo.pasos;
             const pasosSegunContraste = conContraste
@@ -206,11 +211,58 @@ function DetalleProtocolo() {
 
             return (
               <div className="mb-6">
-                {hayVariantesPorEquipo && (
-                  <div className="mb-3">
-                    <p className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">
-                      Resonador
+                {esRM && equipo === null && (
+                  <div className="mb-6">
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                      Paso 1 de 2 · ¿En qué resonador se hace?
                     </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {EQUIPOS.map((e) => (
+                        <button
+                          key={e}
+                          onClick={() => setEquipo(e)}
+                          className="rounded-lg border-2 border-border bg-surface px-4 py-6 text-lg font-semibold text-ink transition-colors hover:border-rm hover:bg-rm-dim"
+                        >
+                          {e}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {esRM && equipo !== null && contrasteElegido === null && (
+                  <div className="mb-6">
+                    <p className="mb-3 text-xs text-ink-faint">
+                      Resonador: <span className="font-semibold text-ink">{equipo}</span> ·{" "}
+                      <button
+                        onClick={() => setEquipo(null)}
+                        className="underline hover:text-ink"
+                      >
+                        cambiar
+                      </button>
+                    </p>
+                    <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                      Paso 2 de 2 · ¿Con o sin contraste?
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => setContrasteElegido(false)}
+                        className="rounded-lg border-2 border-border bg-surface px-4 py-6 text-lg font-semibold text-ink transition-colors hover:border-rm hover:bg-rm-dim"
+                      >
+                        Sin contraste
+                      </button>
+                      <button
+                        onClick={() => setContrasteElegido(true)}
+                        className="rounded-lg border-2 border-border bg-surface px-4 py-6 text-lg font-semibold text-ink transition-colors hover:border-tc hover:bg-tc-dim"
+                      >
+                        Con contraste
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {esRM && listo && (
+                  <div className="mb-3 flex flex-col gap-2">
                     <div className="grid grid-cols-2 gap-2">
                       {EQUIPOS.map((e) => (
                         <button
@@ -226,33 +278,33 @@ function DetalleProtocolo() {
                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
-                {protocolo.modalidad === "RM" && (
-                  <div className="mb-3 grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setConContraste(false)}
-                      className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                        !conContraste
-                          ? "border-rm bg-rm-dim text-ink"
-                          : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
-                      }`}
-                    >
-                      Sin contraste
-                    </button>
-                    <button
-                      onClick={() => setConContraste(true)}
-                      className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
-                        conContraste
-                          ? "border-tc bg-tc-dim text-ink"
-                          : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
-                      }`}
-                    >
-                      Con contraste
-                    </button>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setContrasteElegido(false)}
+                        className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                          !conContraste
+                            ? "border-rm bg-rm-dim text-ink"
+                            : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
+                        }`}
+                      >
+                        Sin contraste
+                      </button>
+                      <button
+                        onClick={() => setContrasteElegido(true)}
+                        className={`rounded-lg border-2 px-4 py-3 text-sm font-semibold transition-colors ${
+                          conContraste
+                            ? "border-tc bg-tc-dim text-ink"
+                            : "border-border bg-surface text-ink-faint hover:border-tc-dim hover:text-ink"
+                        }`}
+                      >
+                        Con contraste
+                      </button>
+                    </div>
                   </div>
                 )}
 
+                {listo && (
+                  <>
                 {protocolo.usaContraste && (protocolo.modalidad !== "RM" || conContraste) && (
                   <div className="mb-4 rounded border border-tc-dim bg-tc-dim/10 p-4">
                     <p className="mb-1 text-[11px] uppercase tracking-wide text-tc">
@@ -388,11 +440,13 @@ function DetalleProtocolo() {
                     );
                   })}
                 </ol>
+                  </>
+                )}
               </div>
             );
           })()}
 
-          {protocolo.reconstrucciones && protocolo.reconstrucciones.length > 0 && (
+          {listo && protocolo.reconstrucciones && protocolo.reconstrucciones.length > 0 && (
             <div className="mb-6">
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Reconstrucciones
@@ -424,7 +478,7 @@ function DetalleProtocolo() {
             <GaleriaImagenes imagenes={protocolo.imagenes} />
           )}
 
-          {protocolo.videos && protocolo.videos.length > 0 && (() => {
+          {listo && protocolo.videos && protocolo.videos.length > 0 && (() => {
             const videosVisibles =
               protocolo.modalidad === "RM"
                 ? protocolo.videos.filter(
