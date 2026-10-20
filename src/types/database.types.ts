@@ -57,6 +57,8 @@ export interface Protocolo {
   patologia: string;
   indicacion: string | null;
   usaContraste: boolean;
+  // Si el estudio se hace en un solo resonador. Vacío = se hace en los dos.
+  soloEquipo?: Equipo | null;
   detalleContraste: string | null;
   pasos: PasoProtocolo[];
   pasosConContraste?: PasoProtocolo[];

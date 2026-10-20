@@ -114,7 +114,11 @@ function DetalleProtocolo() {
 
   // Solo se pide elegir resonador y contraste en Resonancia con técnica cargada.
   const esRM = protocolo.modalidad === "RM" && (protocolo.pasos?.length ?? 0) > 0;
-  const listo = !esRM || (equipo !== null && contrasteElegido !== null);
+  // Si el estudio se hace en un solo resonador, ese queda elegido solo.
+  const soloEquipo: Equipo | null =
+    protocolo.modalidad === "RM" ? protocolo.soloEquipo ?? null : null;
+  const equipoActivo: Equipo | null = soloEquipo ?? equipo;
+  const listo = !esRM || (equipoActivo !== null && contrasteElegido !== null);
 
   return (
     <div className="flex h-screen flex-col bg-bg">
@@ -171,8 +175,8 @@ function DetalleProtocolo() {
             // Solo en resonancia: se quedan los pasos del resonador elegido
             // (los que no tienen resonador asignado aplican a los dos).
             const pasosDelEquipo =
-              esRM && equipo
-                ? protocolo.pasos.filter((p) => aplicaAEquipo(p, equipo))
+              esRM && equipoActivo
+                ? protocolo.pasos.filter((p) => aplicaAEquipo(p, equipoActivo))
                 : protocolo.pasos;
             const pasosSegunContraste = conContraste
               ? pasosDelEquipo.filter((p) => !p.soloSinContraste)
@@ -211,7 +215,7 @@ function DetalleProtocolo() {
 
             return (
               <div className="mb-6">
-                {esRM && equipo === null && (
+                {esRM && equipoActivo === null && (
                   <div className="mb-6">
                     <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                       Paso 1 de 2 · ¿En qué resonador se hace?
@@ -230,16 +234,23 @@ function DetalleProtocolo() {
                   </div>
                 )}
 
-                {esRM && equipo !== null && contrasteElegido === null && (
+                {esRM && equipoActivo !== null && contrasteElegido === null && (
                   <div className="mb-6">
                     <p className="mb-3 text-xs text-ink-faint">
-                      Resonador: <span className="font-semibold text-ink">{equipo}</span> ·{" "}
-                      <button
-                        onClick={() => setEquipo(null)}
-                        className="underline hover:text-ink"
-                      >
-                        cambiar
-                      </button>
+                      Resonador: <span className="font-semibold text-ink">{equipoActivo}</span>
+                      {soloEquipo ? (
+                        <> · este estudio se hace solo en el {soloEquipo}</>
+                      ) : (
+                        <>
+                          {" "}·{" "}
+                          <button
+                            onClick={() => setEquipo(null)}
+                            className="underline hover:text-ink"
+                          >
+                            cambiar
+                          </button>
+                        </>
+                      )}
                     </p>
                     <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                       Paso 2 de 2 · ¿Con o sin contraste?
@@ -263,21 +274,30 @@ function DetalleProtocolo() {
 
                 {esRM && listo && (
                   <div className="mb-3 flex flex-col gap-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      {EQUIPOS.map((e) => (
-                        <button
-                          key={e}
-                          onClick={() => setEquipo(e)}
-                          className={`rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors ${
-                            equipo === e
-                              ? "border-rm bg-rm-dim text-ink"
-                              : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
-                          }`}
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
+                    {soloEquipo ? (
+                      <p className="rounded-lg border-2 border-rm bg-rm-dim px-4 py-2 text-sm font-semibold text-ink">
+                        Resonador {soloEquipo}{" "}
+                        <span className="font-normal text-ink-dim">
+                          · este estudio se hace solo en el {soloEquipo}
+                        </span>
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {EQUIPOS.map((e) => (
+                          <button
+                            key={e}
+                            onClick={() => setEquipo(e)}
+                            className={`rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-colors ${
+                              equipoActivo === e
+                                ? "border-rm bg-rm-dim text-ink"
+                                : "border-border bg-surface text-ink-faint hover:border-rm-dim hover:text-ink"
+                            }`}
+                          >
+                            {e}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => setContrasteElegido(false)}

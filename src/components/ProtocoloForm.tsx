@@ -14,6 +14,7 @@ import { MODALIDADES } from "@/lib/modalidades";
 import { normalizarImagen } from "@/lib/imagenes";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type {
+  Equipo,
   ImagenProtocolo,
   Modalidad,
   PasoProtocolo,
@@ -62,6 +63,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [patologia, setPatologia] = useState(inicial?.patologia ?? "");
   const [indicacion, setIndicacion] = useState(inicial?.indicacion ?? "");
   const [usaContraste, setUsaContraste] = useState(inicial?.usaContraste ?? false);
+  const [soloEquipo, setSoloEquipo] = useState<"" | Equipo>(inicial?.soloEquipo ?? "");
   const [detalleContraste, setDetalleContraste] = useState(
     inicial?.detalleContraste ?? ""
   );
@@ -247,6 +249,7 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       patologia: patologia.trim(),
       indicacion: indicacion.trim() || null,
       usaContraste,
+      soloEquipo: modalidad === "RM" && soloEquipo ? soloEquipo : null,
       detalleContraste: usaContraste ? detalleContraste.trim() || null : null,
       pasos: pasos.filter((p) => p.titulo.trim().length > 0),
       pasosConContraste: [],
@@ -346,6 +349,23 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
           className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm"
         />
       </div>
+
+      {modalidad === "RM" && (
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-ink-dim">
+            ¿En qué resonador se hace este estudio?
+          </label>
+          <select
+            value={soloEquipo}
+            onChange={(e) => setSoloEquipo(e.target.value as "" | Equipo)}
+            className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-rm sm:w-72"
+          >
+            <option value="">En los dos (1.5T y 3T)</option>
+            <option value="1.5T">Solo en el 1.5T</option>
+            <option value="3T">Solo en el 3T</option>
+          </select>
+        </div>
+      )}
 
       <div className="rounded border border-border bg-surface p-4">
         <label className="flex items-center gap-2 text-sm text-ink">

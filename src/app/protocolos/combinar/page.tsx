@@ -9,7 +9,7 @@ import { db } from "@/lib/firebase/client";
 import { notaAutomatica } from "@/lib/notasAutomaticas";
 import { esOsteoarticular } from "@/lib/regionesEspeciales";
 import { EQUIPOS, aplicaAEquipo, tieneVariantesPorEquipo, useEquipo } from "@/lib/equipo";
-import type { PasoProtocolo, Protocolo } from "@/types/database.types";
+import type { PasoProtocolo, Protocolo, Equipo } from "@/types/database.types";
 
 interface ItemMezcla extends PasoProtocolo {
   _origen: string;
@@ -74,6 +74,17 @@ function ArmarCombinado() {
     [seleccionIds, protocolos]
   );
 
+  // Si algún estudio elegido se hace en un solo resonador, la técnica combinada
+  // se arma para ese resonador. Si dos estudios piden resonadores distintos,
+  // no se pueden hacer juntos.
+  const soloEquiposElegidos: Equipo[] = Array.from(
+    new Set<Equipo>(seleccionados.map((p) => p.soloEquipo).filter((e): e is Equipo => !!e))
+  );
+  const equipoForzado: Equipo | null =
+    soloEquiposElegidos.length === 1 ? soloEquiposElegidos[0] : null;
+  const conflictoDeEquipos = soloEquiposElegidos.length > 1;
+  const equipoEfectivo: Equipo = equipoForzado ?? equipo;
+
   const disponibles = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     return protocolos
@@ -120,7 +131,7 @@ function ArmarCombinado() {
     const partes = seleccionados.map((p) => {
       // Solo los pasos que aplican al resonador elegido (los que no tienen
       // resonador asignado aplican a los dos).
-      const pasosDelEquipo = p.pasos.filter((x) => aplicaAEquipo(x, equipo));
+      const pasosDelEquipo = p.pasos.filter((x) => aplicaAEquipo(x, equipoEfectivo));
       const fija = pasosDelEquipo.filter((x) => !x.soloConContraste);
       const pasosConContraste = pasosDelEquipo.filter((x) => !x.soloSinContraste);
       const antes = pasosConContraste.filter((x) => !x.despuesDeInyeccion);
@@ -258,7 +269,7 @@ function ArmarCombinado() {
           ...postTotal,
         ]
       : preTotal;
-  }, [seleccionados, contraste, zonaDinamicaManual, equipo]);
+  }, [seleccionados, contraste, zonaDinamicaManual, equipoEfectivo]);
 
   const condicionesDisponibles = useMemo(
     () =>
@@ -445,7 +456,26 @@ function ArmarCombinado() {
               <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
                 Técnica combinada
               </p>
-              {seleccionados.some((p) => tieneVariantesPorEquipo(p.pasos)) && (
+              {conflictoDeEquipos && (
+                <div className="mb-3 rounded border border-alert-dim bg-alert-dim/10 p-3">
+                  <p className="text-sm font-semibold text-alert">
+                    Estos estudios no se pueden hacer juntos: uno se hace solo en el 1.5T y otro
+                    solo en el 3T.
+                  </p>
+                </div>
+              )}
+              {equipoForzado && (
+                <div className="mb-3 rounded border border-border bg-surface p-3">
+                  <p className="text-sm text-ink">
+                    Resonador <span className="font-semibold">{equipoForzado}</span>
+                    <span className="text-ink-dim">
+                      {" "}
+                      · hay un estudio elegido que se hace solo en el {equipoForzado}
+                    </span>
+                  </p>
+                </div>
+              )}
+              {!equipoForzado && !conflictoDeEquipos && seleccionados.some((p) => tieneVariantesPorEquipo(p.pasos)) && (
                 <div className="mb-3 rounded border border-border bg-surface p-3">
                   <p className="mb-2 text-xs font-medium text-ink-dim">
                     ¿En qué resonador se hace? (algunas secuencias cambian)
