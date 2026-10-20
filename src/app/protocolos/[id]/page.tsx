@@ -158,6 +158,14 @@ function DetalleProtocolo() {
             {protocolo.patologia}
           </h1>
 
+          {esRM && soloEquipo && (
+            <div className="mb-6 rounded-lg border-2 border-rm bg-rm-dim px-5 py-4">
+              <p className="text-xl font-bold text-ink">
+                Este estudio se hace SOLO en el {soloEquipo}
+              </p>
+            </div>
+          )}
+
           {protocolo.indicacion && (
             <div className="mb-6 rounded border border-border bg-surface p-4">
               <p className="mb-1 text-[11px] uppercase tracking-wide text-ink-faint">
@@ -238,9 +246,7 @@ function DetalleProtocolo() {
                   <div className="mb-6">
                     <p className="mb-3 text-xs text-ink-faint">
                       Resonador: <span className="font-semibold text-ink">{equipoActivo}</span>
-                      {soloEquipo ? (
-                        <> · este estudio se hace solo en el {soloEquipo}</>
-                      ) : (
+                      {soloEquipo ? null : (
                         <>
                           {" "}·{" "}
                           <button
@@ -275,11 +281,8 @@ function DetalleProtocolo() {
                 {esRM && listo && (
                   <div className="mb-3 flex flex-col gap-2">
                     {soloEquipo ? (
-                      <p className="rounded-lg border-2 border-rm bg-rm-dim px-4 py-2 text-sm font-semibold text-ink">
-                        Resonador {soloEquipo}{" "}
-                        <span className="font-normal text-ink-dim">
-                          · este estudio se hace solo en el {soloEquipo}
-                        </span>
+                      <p className="rounded-lg border-2 border-rm bg-rm-dim px-4 py-3 text-base font-bold text-ink">
+                        Resonador {soloEquipo} · solo se hace en este equipo
                       </p>
                     ) : (
                       <div className="grid grid-cols-2 gap-2">

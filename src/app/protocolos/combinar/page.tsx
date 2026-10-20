@@ -457,21 +457,20 @@ function ArmarCombinado() {
                 Técnica combinada
               </p>
               {conflictoDeEquipos && (
-                <div className="mb-3 rounded border border-alert-dim bg-alert-dim/10 p-3">
-                  <p className="text-sm font-semibold text-alert">
+                <div className="mb-3 rounded-lg border-2 border-alert-dim bg-alert-dim/10 px-5 py-4">
+                  <p className="text-lg font-bold text-alert">
                     Estos estudios no se pueden hacer juntos: uno se hace solo en el 1.5T y otro
                     solo en el 3T.
                   </p>
                 </div>
               )}
               {equipoForzado && (
-                <div className="mb-3 rounded border border-border bg-surface p-3">
-                  <p className="text-sm text-ink">
-                    Resonador <span className="font-semibold">{equipoForzado}</span>
-                    <span className="text-ink-dim">
-                      {" "}
-                      · hay un estudio elegido que se hace solo en el {equipoForzado}
-                    </span>
+                <div className="mb-3 rounded-lg border-2 border-rm bg-rm-dim px-5 py-4">
+                  <p className="text-xl font-bold text-ink">
+                    Se hace SOLO en el {equipoForzado}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-dim">
+                    Hay un estudio elegido que solo se realiza en ese resonador.
                   </p>
                 </div>
               )}
