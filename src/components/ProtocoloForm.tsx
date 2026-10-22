@@ -17,10 +17,98 @@ import type {
   Equipo,
   ImagenProtocolo,
   Modalidad,
+  ParametroFicha,
   PasoProtocolo,
   Protocolo,
+  ReconstruccionTC,
   VideoProtocolo,
+  VistaTC,
 } from "@/types/database.types";
+
+const SUGERENCIAS_PARAMETROS = [
+  "Modo",
+  "kV",
+  "mA",
+  "Pitch",
+  "Rotación",
+  "Colimación",
+  "Espesor de adquisición",
+  "Espesor de corte",
+  "Intervalo",
+  "Filtro",
+  "ASiR-V",
+  "Ventana",
+  "Matriz",
+  "FOV",
+  "Cobertura",
+  "Cantidad de imágenes",
+  "Formato de datos",
+];
+
+const SUGERENCIAS_DESTINO = ["Entregar en discos", "Enviar a PACS", "Enviar a la estación de trabajo"];
+
+function limpiarParametros(lista: ParametroFicha[]): ParametroFicha[] {
+  return lista
+    .filter((p) => p.etiqueta.trim().length > 0 && p.valor.trim().length > 0)
+    .map((p) => ({ etiqueta: p.etiqueta.trim(), valor: p.valor.trim(), destacado: !!p.destacado }));
+}
+
+function EditorParametros({
+  valor,
+  onChange,
+}: {
+  valor: ParametroFicha[];
+  onChange: (nuevo: ParametroFicha[]) => void;
+}) {
+  function actualizar(i: number, cambios: Partial<ParametroFicha>) {
+    onChange(valor.map((p, idx) => (idx === i ? { ...p, ...cambios } : p)));
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {valor.map((p, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          <input
+            list="sugerencias-parametros"
+            value={p.etiqueta}
+            onChange={(e) => actualizar(i, { etiqueta: e.target.value })}
+            placeholder="Nombre (ej: Filtro)"
+            className="w-44 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+          />
+          <input
+            value={p.valor}
+            onChange={(e) => actualizar(i, { valor: e.target.value })}
+            placeholder="Valor (ej: BonePlus)"
+            className="min-w-[10rem] flex-1 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+          />
+          <label className="flex items-center gap-1 text-xs text-ink-dim">
+            <input
+              type="checkbox"
+              checked={!!p.destacado}
+              onChange={(e) => actualizar(i, { destacado: e.target.checked })}
+              className="h-3.5 w-3.5 accent-rm"
+            />
+            Destacar
+          </label>
+          <button
+            type="button"
+            onClick={() => onChange(valor.filter((_, idx) => idx !== i))}
+            className="text-xs text-ink-faint hover:text-alert"
+          >
+            Quitar
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...valor, { etiqueta: "", valor: "" }])}
+        className="self-start text-xs text-rm hover:underline"
+      >
+        + Agregar dato
+      </button>
+    </div>
+  );
+}
 
 const MAX_IMAGENES = 4;
 const ANCHO_MAXIMO = 900;
@@ -78,6 +166,13 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
   const [reconstrucciones, setReconstrucciones] = useState<PasoProtocolo[]>(
     inicial?.reconstrucciones ?? []
   );
+  const [usarVistaTC, setUsarVistaTC] = useState(!!inicial?.vistaTC);
+  const [vistaTC, setVistaTC] = useState<VistaTC>(
+    inicial?.vistaTC ?? { ruta: true, ficha: true, reconstrucciones: true, aviso: true }
+  );
+  const [ficha, setFicha] = useState<ParametroFicha[]>(inicial?.fichaAdquisicion ?? []);
+  const [reconsTC, setReconsTC] = useState<ReconstruccionTC[]>(inicial?.reconstruccionesTC ?? []);
+  const [avisoImportante, setAvisoImportante] = useState(inicial?.avisoImportante ?? "");
   const [notas, setNotas] = useState(inicial?.notas ?? "");
   const [postProceso, setPostProceso] = useState(inicial?.postProceso ?? "");
   const [videos, setVideos] = useState<VideoProtocolo[]>(inicial?.videos ?? []);
@@ -253,6 +348,16 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
       detalleContraste: usaContraste ? detalleContraste.trim() || null : null,
       pasos: pasos.filter((p) => p.titulo.trim().length > 0),
       pasosConContraste: [],
+      vistaTC: modalidad === "TC" && usarVistaTC ? vistaTC : null,
+      fichaAdquisicion: limpiarParametros(ficha),
+      reconstruccionesTC: reconsTC
+        .map((r) => ({
+          titulo: r.titulo.trim(),
+          destino: r.destino?.trim() || null,
+          parametros: limpiarParametros(r.parametros),
+        }))
+        .filter((r) => r.titulo.length > 0 || r.parametros.length > 0),
+      avisoImportante: avisoImportante.trim() || null,
       reconstrucciones: reconstrucciones.filter((r) => r.titulo.trim().length > 0),
       postProceso: postProceso.trim() || null,
       notas: notas.trim() || null,
@@ -714,6 +819,166 @@ export function ProtocoloForm({ inicial }: { inicial?: Protocolo }) {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {modalidad === "TC" && (
+        <div className="rounded border border-border bg-surface p-4">
+          <datalist id="sugerencias-parametros">
+            {SUGERENCIAS_PARAMETROS.map((x) => (
+              <option key={x} value={x} />
+            ))}
+          </datalist>
+          <datalist id="sugerencias-destino">
+            {SUGERENCIAS_DESTINO.map((x) => (
+              <option key={x} value={x} />
+            ))}
+          </datalist>
+
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={usarVistaTC}
+              onChange={(e) => setUsarVistaTC(e.target.checked)}
+              className="h-4 w-4 accent-rm"
+            />
+            Usar la vista compacta de TC en este protocolo
+          </label>
+          <p className="mt-1 text-xs text-ink-faint">
+            Si no la activás, el protocolo se ve como siempre.
+          </p>
+
+          {usarVistaTC && (
+            <div className="mt-4 flex flex-col gap-5">
+              <div>
+                <p className="mb-2 text-xs font-medium text-ink-dim">Qué se muestra</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={vistaTC.ruta}
+                      onChange={(e) => setVistaTC((v) => ({ ...v, ruta: e.target.checked }))}
+                      className="h-4 w-4 accent-rm"
+                    />
+                    Ruta de pasos (tarjetas compactas)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={vistaTC.ficha}
+                      onChange={(e) => setVistaTC((v) => ({ ...v, ficha: e.target.checked }))}
+                      className="h-4 w-4 accent-rm"
+                    />
+                    Ficha de adquisición
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={vistaTC.reconstrucciones}
+                      onChange={(e) =>
+                        setVistaTC((v) => ({ ...v, reconstrucciones: e.target.checked }))
+                      }
+                      className="h-4 w-4 accent-rm"
+                    />
+                    Reconstrucciones en tarjetas
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-ink">
+                    <input
+                      type="checkbox"
+                      checked={vistaTC.aviso}
+                      onChange={(e) => setVistaTC((v) => ({ ...v, aviso: e.target.checked }))}
+                      className="h-4 w-4 accent-rm"
+                    />
+                    Aviso importante
+                  </label>
+                </div>
+              </div>
+
+              {vistaTC.ficha && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink-dim">Ficha de adquisición</p>
+                  <EditorParametros valor={ficha} onChange={setFicha} />
+                </div>
+              )}
+
+              {vistaTC.reconstrucciones && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-ink-dim">Reconstrucciones (tarjetas)</p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setReconsTC((prev) => [...prev, { titulo: "", destino: "", parametros: [] }])
+                      }
+                      className="text-xs text-rm hover:underline"
+                    >
+                      + Agregar reconstrucción
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {reconsTC.map((r, i) => (
+                      <div key={i} className="flex flex-col gap-3 rounded border border-border bg-bg p-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            value={r.titulo}
+                            onChange={(e) =>
+                              setReconsTC((prev) =>
+                                prev.map((x, idx) => (idx === i ? { ...x, titulo: e.target.value } : x))
+                              )
+                            }
+                            placeholder="Título (ej: Axial, hueso)"
+                            className="min-w-[10rem] flex-1 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                          />
+                          <input
+                            list="sugerencias-destino"
+                            value={r.destino ?? ""}
+                            onChange={(e) =>
+                              setReconsTC((prev) =>
+                                prev.map((x, idx) => (idx === i ? { ...x, destino: e.target.value } : x))
+                              )
+                            }
+                            placeholder="Destino (opcional)"
+                            className="w-56 rounded border border-border bg-surface px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setReconsTC((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="text-xs text-ink-faint hover:text-alert"
+                          >
+                            Quitar
+                          </button>
+                        </div>
+                        <EditorParametros
+                          valor={r.parametros}
+                          onChange={(nuevo) =>
+                            setReconsTC((prev) =>
+                              prev.map((x, idx) => (idx === i ? { ...x, parametros: nuevo } : x))
+                            )
+                          }
+                        />
+                      </div>
+                    ))}
+                    {reconsTC.length === 0 && (
+                      <p className="text-xs text-ink-faint">Todavía no agregaste ninguna tarjeta.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {vistaTC.aviso && (
+                <div>
+                  <p className="mb-2 text-xs font-medium text-ink-dim">Aviso importante</p>
+                  <textarea
+                    value={avisoImportante}
+                    onChange={(e) => setAvisoImportante(e.target.value)}
+                    rows={2}
+                    placeholder="Ej: No borrar las imágenes originales hasta que se verifiquen los parámetros."
+                    className="w-full rounded border border-border bg-bg px-3 py-2 text-sm text-ink outline-none focus:border-rm"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

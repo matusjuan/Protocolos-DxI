@@ -17,6 +17,16 @@ import { EQUIPOS, aplicaAEquipo } from "@/lib/equipo";
 import { useAuth } from "@/lib/firebase/AuthProvider";
 import type { Equipo, Protocolo } from "@/types/database.types";
 
+// Primera línea del detalle de un paso, acortada, para mostrarla en la tarjeta compacta.
+function resumirDetalle(detalle: string): string {
+  const linea = detalle
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.length > 0);
+  if (!linea) return "";
+  return linea.length > 70 ? `${linea.slice(0, 67)}…` : linea;
+}
+
 function DetalleProtocolo() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -119,6 +129,12 @@ function DetalleProtocolo() {
     protocolo.modalidad === "RM" ? protocolo.soloEquipo ?? null : null;
   const equipoActivo: Equipo | null = soloEquipo ?? equipo;
   const listo = !esRM || (equipoActivo !== null && contrasteElegido !== null);
+
+  // Vista compacta de TC (opcional, se activa desde el editor del protocolo).
+  const vistaTC = protocolo.vistaTC ?? null;
+  const rutaCompacta = !!vistaTC?.ruta;
+  const fichaAdquisicion = protocolo.fichaAdquisicion ?? [];
+  const reconstruccionesTC = protocolo.reconstruccionesTC ?? [];
 
   return (
     <div className="flex h-screen flex-col bg-bg">
@@ -391,6 +407,79 @@ function DetalleProtocolo() {
                   </div>
                 )}
 
+                {rutaCompacta && (
+                  <ol className="grid grid-cols-2 items-start gap-2 sm:grid-cols-4">
+                    {itemsVisibles.map((paso, i) => {
+                      if (paso.titulo.includes("inyecta el contraste")) {
+                        return (
+                          <li key={i} className="col-span-full my-1 flex items-center gap-3 py-1">
+                            <span className="h-px flex-1 bg-tc-dim" />
+                            <span className="whitespace-nowrap text-xs font-semibold text-tc">
+                              {paso.titulo}
+                            </span>
+                            <span className="h-px flex-1 bg-tc-dim" />
+                          </li>
+                        );
+                      }
+                      const abierto = pasosAbiertos.has(i);
+                      const tieneContenido =
+                        (paso.detalle && paso.detalle.trim().length > 0) || paso.imagen;
+                      const resumen = resumirDetalle(paso.detalle ?? "");
+                      const nota = paso.notaManual || notaAutomatica(paso.titulo);
+                      return (
+                        <li
+                          key={i}
+                          className={`overflow-hidden rounded border border-border bg-surface ${
+                            abierto ? "col-span-full" : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => tieneContenido && alternarPaso(i)}
+                            className={`flex w-full flex-col items-start gap-1 p-3 text-left ${
+                              tieneContenido ? "cursor-pointer hover:bg-surface2" : "cursor-default"
+                            }`}
+                          >
+                            <span className="font-mono text-xs text-ink-faint">
+                              {String(i + 1).padStart(2, "0")}
+                            </span>
+                            <span className="text-sm font-medium text-ink">{paso.titulo}</span>
+                            {resumen && <span className="text-xs text-ink-dim">{resumen}</span>}
+                            {paso.condicionOpcional && (
+                              <span className="rounded border border-rm-dim px-1.5 py-0.5 text-[10px] text-rm">
+                                {paso.condicionOpcional}
+                              </span>
+                            )}
+                            {nota && (
+                              <span className="text-xs font-semibold text-tc">📋 {nota}</span>
+                            )}
+                          </button>
+                          {tieneContenido && abierto && (
+                            <div className="border-t border-border bg-bg px-3 py-3">
+                              {paso.detalle && (
+                                <p className="whitespace-pre-line text-sm text-ink-dim">
+                                  {paso.detalle}
+                                </p>
+                              )}
+                              {paso.imagen && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={paso.imagen}
+                                  alt={`Cómo programar: ${paso.titulo}`}
+                                  className={`max-h-72 rounded border border-border object-contain ${
+                                    paso.detalle ? "mt-3" : ""
+                                  }`}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+
+                {!rutaCompacta && (
                 <ol className="flex flex-col gap-2">
                   {itemsVisibles.map((paso, i) => {
                     const esMarcadorInyeccion = paso.titulo.includes("inyecta el contraste");
@@ -463,11 +552,83 @@ function DetalleProtocolo() {
                     );
                   })}
                 </ol>
+                )}
                   </>
                 )}
               </div>
             );
           })()}
+
+          {vistaTC?.ficha && fichaAdquisicion.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                Ficha de adquisición
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {fichaAdquisicion.map((p, i) => (
+                  <div
+                    key={i}
+                    className={`rounded bg-surface px-3 py-2 ${
+                      p.destacado ? "border-2 border-rm" : "border border-border"
+                    }`}
+                  >
+                    <p className="text-[11px] text-ink-faint">{p.etiqueta}</p>
+                    <p className={`text-sm font-medium ${p.destacado ? "text-rm" : "text-ink"}`}>
+                      {p.valor}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {vistaTC?.reconstrucciones && reconstruccionesTC.length > 0 && (
+            <div className="mb-6">
+              <p className="mb-2 text-[11px] uppercase tracking-wide text-ink-faint">
+                Reconstrucciones
+              </p>
+              <div className="flex flex-col gap-2">
+                {reconstruccionesTC.map((r, i) => (
+                  <div key={i} className="rounded border border-border bg-surface p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="min-w-[8rem] flex-1 text-sm font-semibold text-ink">
+                        {r.titulo}
+                      </p>
+                      {r.destino && (
+                        <span className="rounded-full bg-rm-dim px-3 py-1 text-xs font-medium text-ink">
+                          {r.destino}
+                        </span>
+                      )}
+                    </div>
+                    {(r.parametros ?? []).length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {r.parametros.map((p, j) => (
+                          <span
+                            key={j}
+                            className={`rounded px-2.5 py-1 text-xs ${
+                              p.destacado ? "border-2 border-rm" : "border border-border bg-bg"
+                            }`}
+                          >
+                            <span className="text-ink-faint">{p.etiqueta} </span>
+                            <span className={p.destacado ? "font-semibold text-rm" : "text-ink"}>
+                              {p.valor}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {vistaTC?.aviso && protocolo.avisoImportante && (
+            <div className="mb-6 flex items-start gap-3 rounded border border-alert-dim bg-alert-dim/10 p-4">
+              <span aria-hidden="true">⚠️</span>
+              <p className="whitespace-pre-line text-sm text-alert">{protocolo.avisoImportante}</p>
+            </div>
+          )}
 
           {listo && protocolo.reconstrucciones && protocolo.reconstrucciones.length > 0 && (
             <div className="mb-6">

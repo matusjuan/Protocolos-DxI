@@ -27,6 +27,28 @@ export interface ValorParametro {
   angulacion?: string;
 }
 
+// Dato suelto de una ficha (ej: "Filtro" / "BonePlus"). "destacado" lo resalta.
+export interface ParametroFicha {
+  etiqueta: string;
+  valor: string;
+  destacado?: boolean;
+}
+
+// Reconstrucción de TC mostrada como tarjeta.
+export interface ReconstruccionTC {
+  titulo: string;
+  destino?: string | null;
+  parametros: ParametroFicha[];
+}
+
+// Qué bloques de la vista compacta de TC se muestran en un protocolo.
+export interface VistaTC {
+  ruta: boolean;
+  ficha: boolean;
+  reconstrucciones: boolean;
+  aviso: boolean;
+}
+
 export interface ParametrosPorGrupo {
   grupo: string;
   distancia?: string;
@@ -62,6 +84,11 @@ export interface Protocolo {
   detalleContraste: string | null;
   pasos: PasoProtocolo[];
   pasosConContraste?: PasoProtocolo[];
+  // Vista compacta de TC (opcional): si es null/ausente, el protocolo se ve como siempre.
+  vistaTC?: VistaTC | null;
+  fichaAdquisicion?: ParametroFicha[];
+  reconstruccionesTC?: ReconstruccionTC[];
+  avisoImportante?: string | null;
   reconstrucciones?: PasoProtocolo[];
   parametrosPorEdad?: ParametrosPorGrupo[];
   postProceso: string | null;
