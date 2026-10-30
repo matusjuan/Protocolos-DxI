@@ -185,7 +185,7 @@ function PanelImportar() {
   const [protocolos, setProtocolos] = useState<Protocolo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+  const [seleccion, setSeleccion] = useState<Record<string, string[]>>({});
   const [estado, setEstado] = useState<Record<string, Estado>>({});
   const [aplicando, setAplicando] = useState(false);
 
@@ -198,8 +198,11 @@ function PanelImportar() {
           .map((d) => ({ id: d.id, ...d.data() }) as Protocolo)
           .sort((a, b) => `${a.region} ${a.patologia}`.localeCompare(`${b.region} ${b.patologia}`));
         setProtocolos(datos);
-        const inicial: Record<string, string> = {};
-        for (const g of GRUPOS) inicial[g.clave] = sugerir(g, datos);
+        const inicial: Record<string, string[]> = {};
+        for (const g of GRUPOS) {
+          const sugerido = sugerir(g, datos);
+          inicial[g.clave] = sugerido ? [sugerido] : [];
+        }
         setSeleccion(inicial);
         setCargando(false);
       })
@@ -213,7 +216,34 @@ function PanelImportar() {
     };
   }, []);
 
-  const aAplicar = useMemo(() => GRUPOS.filter((g) => !!seleccion[g.clave]), [seleccion]);
+  // Cada par es "este grupo de la planilla" aplicado a "este protocolo".
+  const pares = useMemo(
+    () => GRUPOS.flatMap((g) => (seleccion[g.clave] ?? []).map((id) => ({ g, id }))),
+    [seleccion]
+  );
+
+  // Protocolos ya elegidos en cualquier grupo (no se pueden elegir dos veces).
+  const usados = useMemo(() => new Set(Object.values(seleccion).flat()), [seleccion]);
+
+  // Protocolos agrupados por región, para el desplegable.
+  const porRegion = useMemo(() => {
+    const m = new Map<string, Protocolo[]>();
+    for (const p of protocolos) {
+      const lista = m.get(p.region) ?? [];
+      lista.push(p);
+      m.set(p.region, lista);
+    }
+    return Array.from(m.entries());
+  }, [protocolos]);
+
+  function agregar(clave: string, id: string) {
+    if (!id) return;
+    setSeleccion((prev) => ({ ...prev, [clave]: [...(prev[clave] ?? []), id] }));
+  }
+
+  function quitar(clave: string, id: string) {
+    setSeleccion((prev) => ({ ...prev, [clave]: (prev[clave] ?? []).filter((x) => x !== id) }));
+  }
 
   function descargarBackup() {
     const blob = new Blob([JSON.stringify(protocolos, null, 2)], { type: "application/json" });
@@ -226,19 +256,20 @@ function PanelImportar() {
   }
 
   async function aplicar() {
-    if (aAplicar.length === 0) return;
+    if (pares.length === 0) return;
     if (
       !confirm(
-        `Se van a modificar ${aAplicar.length} protocolo(s). Las tarjetas de reconstrucción que ya tengan se reemplazan. ¿Seguro?`
+        `Se van a modificar ${pares.length} protocolo(s). Las tarjetas de reconstrucción que ya tengan se reemplazan. ¿Seguro?`
       )
     )
       return;
 
     setAplicando(true);
-    for (const g of aAplicar) {
-      const p = protocolos.find((x) => x.id === seleccion[g.clave]);
+    for (const { g, id } of pares) {
+      const clavePar = `${g.clave}|${id}`;
+      const p = protocolos.find((x) => x.id === id);
       if (!p) continue;
-      setEstado((prev) => ({ ...prev, [g.clave]: "aplicando" }));
+      setEstado((prev) => ({ ...prev, [clavePar]: "aplicando" }));
       try {
         const reconstruccionesTC: ReconstruccionTC[] = g.filas.map((f) => ({
           titulo: f.etiqueta,
@@ -266,9 +297,9 @@ function PanelImportar() {
           },
           updatedAt: serverTimestamp(),
         });
-        setEstado((prev) => ({ ...prev, [g.clave]: "ok" }));
+        setEstado((prev) => ({ ...prev, [clavePar]: "ok" }));
       } catch {
-        setEstado((prev) => ({ ...prev, [g.clave]: "error" }));
+        setEstado((prev) => ({ ...prev, [clavePar]: "error" }));
       }
     }
     setAplicando(false);
@@ -284,9 +315,9 @@ function PanelImportar() {
           </Link>
           <h1 className="mb-1 text-lg font-semibold text-ink">Cargar parámetros de TC</h1>
           <p className="mb-4 text-sm text-ink-dim">
-            Elegí a qué protocolo corresponde cada fila de la planilla. Al aplicar, cada protocolo
-            recibe sus tarjetas de reconstrucción y el SFOV en la ficha, y activa esa vista. Los
-            pasos no se tocan.
+            Elegí a qué protocolos corresponde cada fila de la planilla (podés agregar varios en
+            cada una). Al aplicar, cada protocolo recibe sus tarjetas de reconstrucción y el SFOV
+            en la ficha, y activa esa vista. Los pasos no se tocan.
           </p>
 
           <div className="mb-6 rounded border border-border bg-surface p-4 text-sm text-ink-dim">
@@ -312,39 +343,75 @@ function PanelImportar() {
 
           <div className="flex flex-col gap-4">
             {GRUPOS.map((g) => {
-              const elegido = protocolos.find((p) => p.id === seleccion[g.clave]);
-              const yaTiene = elegido?.reconstruccionesTC?.length ?? 0;
-              const est = estado[g.clave];
+              const elegidos = (seleccion[g.clave] ?? [])
+                .map((id) => protocolos.find((p) => p.id === id))
+                .filter((p): p is Protocolo => !!p);
               return (
                 <div key={g.clave} className="rounded border border-border bg-surface p-4">
-                  <div className="mb-3 flex flex-wrap items-center gap-3">
-                    <p className="min-w-[10rem] flex-1 text-sm font-semibold text-ink">{g.nombre}</p>
-                    <select
-                      value={seleccion[g.clave] ?? ""}
-                      onChange={(e) =>
-                        setSeleccion((prev) => ({ ...prev, [g.clave]: e.target.value }))
-                      }
-                      disabled={aplicando}
-                      className="w-72 rounded border border-border bg-bg px-2 py-1.5 text-sm text-ink outline-none focus:border-rm"
-                    >
-                      <option value="">— No aplicar —</option>
-                      {protocolos.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.region} · {p.patologia}
-                        </option>
-                      ))}
-                    </select>
-                    {est === "aplicando" && <span className="text-xs text-ink-faint">Guardando…</span>}
-                    {est === "ok" && <span className="text-xs font-semibold text-rm">Listo</span>}
-                    {est === "error" && <span className="text-xs font-semibold text-alert">Error</span>}
-                  </div>
+                  <p className="mb-3 text-sm font-semibold text-ink">{g.nombre}</p>
 
-                  {yaTiene > 0 && (
-                    <p className="mb-2 text-xs text-tc">
-                      Este protocolo ya tiene {yaTiene} tarjeta(s) de reconstrucción: se van a
-                      reemplazar.
-                    </p>
-                  )}
+                  <div className="mb-3 flex flex-col gap-2">
+                    {elegidos.length === 0 && (
+                      <p className="text-xs text-ink-faint">Ningún protocolo elegido (se saltea).</p>
+                    )}
+                    {elegidos.map((p) => {
+                      const est = estado[`${g.clave}|${p.id}`];
+                      const yaTiene = p.reconstruccionesTC?.length ?? 0;
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex flex-wrap items-center gap-2 rounded border border-border bg-bg px-3 py-1.5"
+                        >
+                          <span className="flex-1 text-sm text-ink">
+                            {p.region} · {p.patologia}
+                          </span>
+                          {yaTiene > 0 && (
+                            <span className="text-xs text-tc">
+                              ya tiene {yaTiene} tarjeta(s): se reemplazan
+                            </span>
+                          )}
+                          {est === "aplicando" && (
+                            <span className="text-xs text-ink-faint">Guardando…</span>
+                          )}
+                          {est === "ok" && (
+                            <span className="text-xs font-semibold text-rm">Listo</span>
+                          )}
+                          {est === "error" && (
+                            <span className="text-xs font-semibold text-alert">Error</span>
+                          )}
+                          <button
+                            onClick={() => quitar(g.clave, p.id)}
+                            disabled={aplicando}
+                            className="text-xs text-ink-faint hover:text-alert disabled:opacity-50"
+                          >
+                            Quitar
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    <select
+                      value=""
+                      onChange={(e) => agregar(g.clave, e.target.value)}
+                      disabled={aplicando}
+                      className="w-full rounded border border-border bg-bg px-2 py-1.5 text-sm text-ink outline-none focus:border-rm sm:w-96"
+                    >
+                      <option value="">+ Agregar un protocolo…</option>
+                      {porRegion.map(([region, lista]) => {
+                        const libres = lista.filter((p) => !usados.has(p.id));
+                        if (libres.length === 0) return null;
+                        return (
+                          <optgroup key={region} label={region}>
+                            {libres.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.patologia}
+                              </option>
+                            ))}
+                          </optgroup>
+                        );
+                      })}
+                    </select>
+                  </div>
 
                   <div className="overflow-x-auto rounded border border-border">
                     <table className="w-full text-left text-xs">
@@ -386,13 +453,13 @@ function PanelImportar() {
           <div className="mt-6 flex items-center gap-3 pb-8">
             <button
               onClick={aplicar}
-              disabled={aplicando || aAplicar.length === 0}
+              disabled={aplicando || pares.length === 0}
               className="rounded bg-rm-dim px-4 py-2 text-sm font-medium text-ink hover:bg-rm hover:text-bg disabled:opacity-50"
             >
-              {aplicando ? "Aplicando…" : `Aplicar a ${aAplicar.length} protocolo(s)`}
+              {aplicando ? "Aplicando…" : `Aplicar a ${pares.length} protocolo(s)`}
             </button>
             <p className="text-xs text-ink-faint">
-              Los grupos en “No aplicar” se saltean.
+              Los grupos sin protocolos elegidos se saltean.
             </p>
           </div>
         </div>
